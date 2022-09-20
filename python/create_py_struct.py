@@ -1,3 +1,21 @@
+from flask import Flask, request
+from flask import send_from_directory, send_file
+from google.cloud import storage
+from tempfile import TemporaryDirectory
+import os, json
+app = Flask(__name__)
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"]= "winmd_prod.json"
+from google.cloud import storage
+storage_client = storage.Client()
+bucket_name = os.getenv("soteria_study_data")
+storage_client = storage.Client()
+bucket = storage_client.bucket(bucket_name)
+download_route_enabled = os.getenv("DOWNLOAD_ROUTE_ENABLED")
+upload_route_enabled = os.getenv("UPLOAD_ROUTE_ENABLED")
+delete_route_enabled = os.getenv("DELETE_ROUTE_ENABLED")
+
+from google.appengine.api import app_identity
+
 import pandas as pd
 import os
 import array as arr
@@ -5,6 +23,10 @@ import awkward as ak
 import numpy as np
 from os.path import exists
 from datetime import datetime
+
+@app.route("/")
+def base():
+    return "APPDAT SIMPLE STORAGE SERVICE | Currently connected to Bucket: " + bucket_name
 
 def adjust_timestamps(datainput):
 	timestamps_time = np.zeros(len(datainput.UserTimeStamp))
@@ -26,7 +48,7 @@ def adjust_timestamps(datainput):
 ## need to adjust this for gsutil ##
 #crew_dir = os.getcwd()
 #crews_to_process = ['Crew1', 'Crew2', 'Crew3', 'Crew4', 'Crew5', 'Crew6', 'Crew7', 'Crew8', 'Crew9', 'Crew10', 'Crew11', 'Crew12', 'Crew13']
-crews_to_process = ['Crew7']
+crews_to_process = ['Crew1']
 print(crews_to_process)
 path_to_project = 'C:/Users/tfettrow/Box/SOTERIA'
 ###############################################
