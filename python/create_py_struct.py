@@ -3,17 +3,7 @@ from flask import send_from_directory, send_file
 from google.cloud import storage
 from tempfile import TemporaryDirectory
 import os, json
-app = Flask(__name__)
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"]= "winmd_prod.json"
 from google.cloud import storage
-storage_client = storage.Client()
-bucket_name = os.getenv("soteria_study_data")
-storage_client = storage.Client()
-bucket = storage_client.bucket(bucket_name)
-download_route_enabled = os.getenv("DOWNLOAD_ROUTE_ENABLED")
-upload_route_enabled = os.getenv("UPLOAD_ROUTE_ENABLED")
-delete_route_enabled = os.getenv("DELETE_ROUTE_ENABLED")
-from google.appengine.api import app_identity
 
 import pandas as pd
 import os
@@ -23,9 +13,17 @@ import numpy as np
 from os.path import exists
 from datetime import datetime
 
-@app.route("/")
-def base():
-    return "APPDAT SIMPLE STORAGE SERVICE | Currently connected to Bucket: " + bucket_name
+app = Flask(__name__)
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"]= "winmd_prod.json"
+storage_client = storage.Client()
+bucket_name = os.getenv("APPDAT_BUCKET_NAME")
+storage_client = storage.Client()
+bucket = storage_client.bucket(bucket_name)
+download_route_enabled = os.getenv("DOWNLOAD_ROUTE_ENABLED")
+upload_route_enabled = os.getenv("UPLOAD_ROUTE_ENABLED")
+delete_route_enabled = os.getenv("DELETE_ROUTE_ENABLED")
+
+print("APPDAT SIMPLE STORAGE SERVICE | Currently connected to Bucket: " + bucket_name)
 
 def adjust_timestamps(datainput):
 	timestamps_time = np.zeros(len(datainput.UserTimeStamp))
