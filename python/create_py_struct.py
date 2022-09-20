@@ -13,7 +13,6 @@ bucket = storage_client.bucket(bucket_name)
 download_route_enabled = os.getenv("DOWNLOAD_ROUTE_ENABLED")
 upload_route_enabled = os.getenv("UPLOAD_ROUTE_ENABLED")
 delete_route_enabled = os.getenv("DELETE_ROUTE_ENABLED")
-
 from google.appengine.api import app_identity
 
 import pandas as pd
