@@ -1,0 +1,20 @@
+
+image: python:latest
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+cache:
+  paths:
+    - .cache/pip
+    - venv/
+before_script:
+  - python --version  # For debugging
+  - pip install virtualenv
+  - virtualenv venv
+  - source venv/bin/activate
+
+run:
+  script:
+    - python python/create_py_struct.py 
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
