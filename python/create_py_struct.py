@@ -16,7 +16,7 @@ from datetime import datetime
 app = Flask(__name__)
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"]= "winmd_prod.json"
 storage_client = storage.Client()
-bucket_name = os.getenv("APPDAT_BUCKET_NAME")
+bucket_name = os.getenv("soteria_study_data")
 storage_client = storage.Client()
 bucket = storage_client.bucket(bucket_name)
 download_route_enabled = os.getenv("DOWNLOAD_ROUTE_ENABLED")
