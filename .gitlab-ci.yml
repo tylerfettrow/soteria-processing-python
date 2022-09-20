@@ -9,7 +9,7 @@ cache:
     - venv/
 before_script:
   - python --version  # For debugging
-  - pip install virtualenv pandas array awkward numpy
+  - pip install virtualenv pandas awkward numpy
 
   - virtualenv venv
   - source venv/bin/activate
