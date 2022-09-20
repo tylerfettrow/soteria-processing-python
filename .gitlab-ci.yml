@@ -15,7 +15,7 @@ before_script:
 
 run:
   script:
-    - pip install wheel pandas awkward numpy
+    - pip install google.cloud wheel pandas awkward numpy
     - python python/create_py_struct.py 
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
