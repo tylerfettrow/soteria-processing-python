@@ -1,5 +1,5 @@
 
-from google.cloud import storage
+import cloudstorage as gcs
 import os, json
 
 import pandas as pd
@@ -10,17 +10,25 @@ import numpy as np
 from os.path import exists
 from datetime import datetime
 
-app = Flask(__name__)
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"]= "winmd_prod.json"
-storage_client = storage.Client()
-bucket_name = os.getenv("soteria_study_data")
-storage_client = storage.Client()
-bucket = storage_client.bucket(bucket_name)
-download_route_enabled = os.getenv("DOWNLOAD_ROUTE_ENABLED")
-upload_route_enabled = os.getenv("UPLOAD_ROUTE_ENABLED")
-delete_route_enabled = os.getenv("DELETE_ROUTE_ENABLED")
+#bucket_name = os.getenv("soteria_study_data")
 
-print("APPDAT SIMPLE STORAGE SERVICE | Currently connected to Bucket: " + bucket_name)
+#print("APPDAT SIMPLE STORAGE SERVICE | Currently connected to Bucket: " + bucket_name)
+
+
+bucket_name = os.environ.get('BUCKET_NAME',"soteria_study_data")
+
+page_size = 1
+  stats = gcs.listbucket(bucket_name + '/foo', max_keys=page_size)
+while True:
+    count = 0
+    for stat in stats:
+      count += 1
+      #gcs.response.write(repr(stat))
+      #gcs.response.write('\n')
+    if count != page_size or count == 0:
+      break
+    stats = gcs.listbucket(bucket + '/foo', max_keys=page_size,
+                           marker=stat.filename)
 
 def adjust_timestamps(datainput):
 	timestamps_time = np.zeros(len(datainput.UserTimeStamp))
