@@ -9,8 +9,7 @@ cache:
     - venv/
 before_script:
   - python --version  # For debugging
-  - pip install virtualenv pandas awkward numpy
-
+  - pip install virtualenv wheel pandas awkward numpy
   - virtualenv venv
   - source venv/bin/activate
 
