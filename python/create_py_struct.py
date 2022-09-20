@@ -18,17 +18,16 @@ from datetime import datetime
 bucket_name = os.environ.get('BUCKET_NAME',"soteria_study_data")
 
 page_size = 1
-  stats = gcs.listbucket(bucket_name + '/foo', max_keys=page_size)
+stats = gcs.listbucket(bucket_name + '/foo', max_keys=page_size)
 while True:
     count = 0
     for stat in stats:
-      count += 1
-      #gcs.response.write(repr(stat))
-      #gcs.response.write('\n')
+    	count += 1
+    	#gcs.response.write(repr(stat))
+    	#gcs.response.write('\n')
     if count != page_size or count == 0:
-      break
-    stats = gcs.listbucket(bucket + '/foo', max_keys=page_size,
-                           marker=stat.filename)
+    	break
+    stats = gcs.listbucket(bucket + '/foo', max_keys=page_size,marker=stat.filename)
 
 def adjust_timestamps(datainput):
 	timestamps_time = np.zeros(len(datainput.UserTimeStamp))
