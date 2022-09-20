@@ -9,12 +9,13 @@ cache:
     - venv/
 before_script:
   - python --version  # For debugging
-  - pip install virtualenv wheel pandas awkward numpy
+  - pip install virtualenv 
   - virtualenv venv
   - source venv/bin/activate
 
 run:
   script:
+    - pip install wheel pandas awkward numpy
     - python python/create_py_struct.py 
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
