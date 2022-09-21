@@ -17,5 +17,4 @@ run:
   script:
     - pip install google-cloud-storage wheel pandas awkward numpy
     - python python/create_py_struct.py 
-  rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
