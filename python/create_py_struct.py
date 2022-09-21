@@ -47,19 +47,15 @@ crews_to_process = ['Crew1']
 ###############################################
 
 for this_crew in crews_to_process:
-    blob = bucket.blob("Crew1/trial_settings.txt") # this would be the file name
-	blob.shape
-    crew_dir = blob.download_to_filename("test")
-	crew_dir.shape
-	#print(crew_dir)
-	#blob = bucket.blob(this_crew) # this would be the file name
-	#current_dir = os.getcwd()
-	#crew_dir = blob.download_to_filename(current_dir+"/"+this_crew)
-
-		
+	all_blobs = list(client.list_blobs(bucket))
+	all_blobs.shape
+	print(all_blobs)
+	#blob = bucket.blob("Crew1") # this would be the file name
+	#blob.shape
+	#crew_dir = blob.download_to_filename("test")
+	#crew_dir.shape
 	
-	#crew_dir = path_to_project + '/' + this_crew
-	print(crew_dir)
+	#print(crew_dir)
 	trial_folders = os.listdir(crew_dir + '/Synched')
 	print(trial_folders)
 	trial_settings = pd.read_table(crew_dir + '/trial_settings.txt',delimiter=',')
