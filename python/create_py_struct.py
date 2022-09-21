@@ -48,7 +48,9 @@ crews_to_process = ['Crew1']
 
 for this_crew in crews_to_process:
     blob = bucket.blob("Crew1/trial_settings.txt") # this would be the file name
+	blob.shape
     crew_dir = blob.download_to_filename("test")
+	crew_dir.shape
 	#print(crew_dir)
 	#blob = bucket.blob(this_crew) # this would be the file name
 	#current_dir = os.getcwd()
