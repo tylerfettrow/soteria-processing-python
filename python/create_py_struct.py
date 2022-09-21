@@ -46,8 +46,8 @@ crews_to_process = ['Crew1']
 
 for this_crew in crews_to_process:
 	blob = bucket.blob(this_crew) # this would be the file name
-	print(os.getcwd)
-	crew_dir = blob.download_to_filename(os.getcwd+"/"+blob)
+	current_dir = os.getcwd()
+	crew_dir = blob.download_to_filename(current_dir+"/"+blob)
 
 		
 	
