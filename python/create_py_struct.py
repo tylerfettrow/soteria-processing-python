@@ -47,14 +47,14 @@ crews_to_process = ['Crew1']
 for this_crew in crews_to_process:
 	blob = bucket.blob(this_crew) # this would be the file name
 	current_dir = os.getcwd()
-	crew_dir = blob.download_to_filename(current_dir+"/"+blob)
+	crew_dir = blob.download_to_filename(current_dir+"/"+this_crew)
 
 		
 	
 	#crew_dir = path_to_project + '/' + this_crew
 	print(crew_dir)
 	trial_folders = os.listdir(crew_dir + '/Synched')
-
+	print(trial_folders)
 	trial_settings = pd.read_table(crew_dir + '/trial_settings.txt',delimiter=',')
 	for this_folder in range(trial_settings.shape[0]):
 		if exists(crew_dir + "/Synched/" + str(trial_settings.RunDateTime[this_folder]) + '/ABM.log'):
