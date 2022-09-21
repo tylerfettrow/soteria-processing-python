@@ -1,7 +1,4 @@
 
-import cloudstorage as gcs
-import os, json
-
 import pandas as pd
 import os
 import array as arr
@@ -9,25 +6,11 @@ import awkward as ak
 import numpy as np
 from os.path import exists
 from datetime import datetime
-
+from google.cloud import storage
 #bucket_name = os.getenv("soteria_study_data")
 
 #print("APPDAT SIMPLE STORAGE SERVICE | Currently connected to Bucket: " + bucket_name)
 
-
-bucket_name = os.environ.get('BUCKET_NAME',"soteria_study_data")
-
-page_size = 1
-stats = gcs.listbucket(bucket_name + '/foo', max_keys=page_size)
-while True:
-    count = 0
-    for stat in stats:
-    	count += 1
-    	#gcs.response.write(repr(stat))
-    	#gcs.response.write('\n')
-    if count != page_size or count == 0:
-    	break
-    stats = gcs.listbucket(bucket + '/foo', max_keys=page_size,marker=stat.filename)
 
 def adjust_timestamps(datainput):
 	timestamps_time = np.zeros(len(datainput.UserTimeStamp))
@@ -48,6 +31,11 @@ def adjust_timestamps(datainput):
 ###############################################
 ## need to adjust this for gsutil ##
 #crew_dir = os.getcwd()
+
+storage_client = storage.Client()
+bucket = storage_client.bucket("soteria_study_data")
+
+
 #crews_to_process = ['Crew1', 'Crew2', 'Crew3', 'Crew4', 'Crew5', 'Crew6', 'Crew7', 'Crew8', 'Crew9', 'Crew10', 'Crew11', 'Crew12', 'Crew13']
 crews_to_process = ['Crew1']
 print(crews_to_process)
@@ -55,7 +43,10 @@ path_to_project = 'C:/Users/tfettrow/Box/SOTERIA'
 ###############################################
 
 for this_crew in crews_to_process:
-	crew_dir = path_to_project + '/' + this_crew
+	blob = bucket.blob('Crew1') # this would be the file name
+	print(os.getcwd)
+	crew_dir = blob.download_to_filename(os.getcwd+"/"+destination_file_name) 
+	#crew_dir = path_to_project + '/' + this_crew
 	print(crew_dir)
 	trial_folders = os.listdir(crew_dir + '/Synched')
 
