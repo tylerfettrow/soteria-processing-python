@@ -33,14 +33,14 @@ def adjust_timestamps(datainput):
 #crew_dir = os.getcwd()
 
 storage_client = storage.Client()
-bucket = storage_client.bucket("soteria_study_data")
-#bucket = storage.Bucket(client, "my-bucket-name", user_project="my-project")
+#bucket = storage_client.bucket("soteria_study_data")
+bucket = storage.Bucket(storage_client, "soteria_study_data", user_project="soteria")
 all_blobs = list(storage_client.list_blobs(bucket))
 print(all_blobs)
 
 #crews_to_process = ['Crew1', 'Crew2', 'Crew3', 'Crew4', 'Crew5', 'Crew6', 'Crew7', 'Crew8', 'Crew9', 'Crew10', 'Crew11', 'Crew12', 'Crew13']
-crews_to_process = ['Crew1']
-print(crews_to_process)
+#crews_to_process = ['Crew1']
+#print(crews_to_process)
 #path_to_project = 'C:/Users/tfettrow/Box/SOTERIA'
 ###############################################
 
