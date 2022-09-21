@@ -34,18 +34,23 @@ def adjust_timestamps(datainput):
 
 storage_client = storage.Client()
 bucket = storage_client.bucket("soteria_study_data")
-
+#bucket = storage.Bucket(client, "my-bucket-name", user_project="my-project")
+all_blobs = list(storage_client.list_blobs(bucket))
+print(all_blobs)
 
 #crews_to_process = ['Crew1', 'Crew2', 'Crew3', 'Crew4', 'Crew5', 'Crew6', 'Crew7', 'Crew8', 'Crew9', 'Crew10', 'Crew11', 'Crew12', 'Crew13']
 crews_to_process = ['Crew1']
 print(crews_to_process)
-path_to_project = 'C:/Users/tfettrow/Box/SOTERIA'
+#path_to_project = 'C:/Users/tfettrow/Box/SOTERIA'
 ###############################################
 
 for this_crew in crews_to_process:
-	blob = bucket.blob('Crew1') # this would be the file name
+	blob = bucket.blob(this_crew) # this would be the file name
 	print(os.getcwd)
-	crew_dir = blob.download_to_filename(os.getcwd+"/"+destination_file_name) 
+	crew_dir = blob.download_to_filename(os.getcwd+"/"+blob)
+
+		
+	
 	#crew_dir = path_to_project + '/' + this_crew
 	print(crew_dir)
 	trial_folders = os.listdir(crew_dir + '/Synched')
