@@ -32,6 +32,8 @@ def adjust_timestamps(datainput):
 ## need to adjust this for gsutil ##
 #crew_dir = os.getcwd()
 
+
+
 storage_client = storage.Client()
 #bucket = storage_client.bucket("soteria_study_data")
 bucket = storage.Bucket(storage_client, "soteria_study_data", user_project="soteria-fa59")
@@ -45,6 +47,9 @@ crews_to_process = ['Crew1']
 ###############################################
 
 for this_crew in crews_to_process:
+    #blob = bucket.blob("Crew1/trial_settings.txt") # this would be the file name
+    #crew_dir = blob.download_to_filename("test")
+
 	blob = bucket.blob(this_crew) # this would be the file name
 	current_dir = os.getcwd()
 	crew_dir = blob.download_to_filename(current_dir+"/"+this_crew)
