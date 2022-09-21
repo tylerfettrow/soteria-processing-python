@@ -34,7 +34,7 @@ def adjust_timestamps(datainput):
 
 storage_client = storage.Client()
 #bucket = storage_client.bucket("soteria_study_data")
-bucket = storage.Bucket(storage_client, "soteria_study_data", user_project="soteria")
+bucket = storage.Bucket(storage_client, "soteria_study_data", user_project="soteria-fa59")
 all_blobs = list(storage_client.list_blobs(bucket))
 print(all_blobs)
 
