@@ -1,20 +1,30 @@
+stages: 
+  - run
 
-image: python:latest
 
-variables:
-  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
-cache:
-  paths:
-    - .cache/pip
-    - venv/
-before_script:
-  - python --version  # For debugging
-  - pip install virtualenv 
-  - virtualenv venv
-  - source venv/bin/activate
+validate-gcp:
+  stage: run
+  image: google/cloud-sdk:latest
+  artifacts:
+    untracked: true
+  script: 
+    - |
+        echo "$CI_JOB_JWT_V2" > token.txt
+        gcloud iam workload-identity-pools create-cred-config \
+        projects/$PROJECT_NUMBER/locations/global/workloadIdentityPools/$POOL_ID/providers/$PROVIDER_ID \
+        --service-account=$SERVICE_ACCOUNT_EMAIL \
+        --service-account-token-lifetime-seconds=600 \
+        --output-file=$CI_PROJECT_DIR/credentials.json \
+        --credential-source-file=token.txt
+    - pip install virtualenv 
+    - virtualenv venv
+    - source venv/bin/activate
+    - export GOOGLE_APPLICATION_CREDENTIALS=$CI_PROJECT_DIR/credentials.json
 
-run:
-  script:
+
+      # Feel free to modify the code below here 
     - pip install google-cloud-storage wheel pandas awkward numpy
     - python python/create_py_struct.py 
+
+  
 
