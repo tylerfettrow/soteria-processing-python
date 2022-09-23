@@ -45,18 +45,22 @@ crews_to_process = ['Crew1']
 ###############################################
 
 for this_crew in crews_to_process:
-	all_blobs = list(storage_client.list_blobs(bucket))
+	#all_blobs = list(storage_client.list_blobs(bucket))
 	#all_blobs.shape
-	print(all_blobs)
+	#print(all_blobs)
 	#blob = bucket.blob("Crew1") # this would be the file name
 	#blob.shape
-	#crew_dir = blob.download_to_filename("test")
+	crew_dir = this_crew
 	#crew_dir.shape
 	
 	#print(crew_dir)
-	trial_folders = os.listdir(crew_dir + '/Synched')
-	print(trial_folders)
+	#trial_folders = os.listdir(crew_dir + '/Synched')
+	#print(trial_folders)
+	blob = bucket.blob(crew_dir + '/trial_settings.txt')
+	blob.download_to_filename(crew_dir + '/trial_settings.txt')
+	
 	trial_settings = pd.read_table(crew_dir + '/trial_settings.txt',delimiter=',')
+	print(trial_settings)
 	for this_folder in range(trial_settings.shape[0]):
 		if exists(crew_dir + "/Synched/" + str(trial_settings.RunDateTime[this_folder]) + '/ABM.log'):
 			print("processing: " + (crew_dir + "/Synched/" + str(trial_settings.RunDateTime[this_folder])+ '/ABM.log'))
