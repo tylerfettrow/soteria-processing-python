@@ -57,7 +57,7 @@ for this_crew in crews_to_process:
 	#trial_folders = os.listdir(crew_dir + '/Synched')
 	#print(trial_folders)
 	blob = bucket.blob(crew_dir + '/trial_settings.txt')
-	blob.download_to_filename()
+	blob.download_to_filename("test")
 	
 	trial_settings = pd.read_table(crew_dir + '/trial_settings.txt',delimiter=',')
 	print(trial_settings)
