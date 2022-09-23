@@ -46,7 +46,7 @@ crews_to_process = ['Crew1']
 
 for this_crew in crews_to_process:
 	all_blobs = list(storage_client.list_blobs(bucket))
-	all_blobs.shape
+	#all_blobs.shape
 	print(all_blobs)
 	#blob = bucket.blob("Crew1") # this would be the file name
 	#blob.shape
