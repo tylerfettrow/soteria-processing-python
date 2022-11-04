@@ -1,0 +1,251 @@
+// This WCM was updated to match the IFD cockit as installed 3/24/17 -lck
+// This specific WCM was customized for use with IFD/DISCO
+// This file was modified to match the new location of the DEP on 3/31/17 21"x, 32.16"y,46"z
+ Plane : {
+  name = "Inst Panel" 
+  lowerMiddle = 0.54, -0.532, .536
+  xAxis = -1, 0, 0 // 
+  yAxis = 0, 0.951, 0.309 //
+  size = 1.57, 0.37 //measured to LRU edges
+ 
+  //  Pilot Knee panel
+  RectangularZone : { 
+    name = "KNEE_PANEL_P" 
+    lowerLeft = 0., -0.09 
+    width = 0.541 
+    height = 0.10
+  } 
+  
+  //  FO Knee panel
+  RectangularZone : { 
+    name = "KNEE_PANEL_FO" 
+    lowerLeft = 1.05, -0.09 
+    width = 0.522
+    height = 0.10
+  } 
+
+  //  FO PFD
+  RectangularZone : { 
+    name = "PFD_FO" 
+    lowerLeft = 1.22, 0.04 
+    width = 0.21 
+    height = 0.21
+  } 
+    RectangularZone : { 
+      name = "PFD_FO_airsp" 
+      lowerLeft = 1.235, 0.078 
+      width = 0.025 
+      height = 0.11
+    } 
+	
+    RectangularZone : { 
+      name = "PFD_FO_alt" 
+      lowerLeft = 1.38, 0.078 
+      width = 0.025 
+      height = 0.11
+    } 
+	
+    RectangularZone : { 
+      name = "PFD_FO_ADI" 
+      lowerLeft = 1.28, 0.085 
+      width = 0.08 
+      height = 0.10
+    } 
+	
+    RectangularZone : { 
+      name = "PFD_FO_FMA" 
+      lowerLeft = 1.27, 0.21 
+      width = 0.09 
+      height = 0.022
+    } 
+  
+
+
+ //  FO NAV display
+  RectangularZone : { 
+    name = "NAV_FO" 
+    lowerLeft = 1.00, 0.04 
+    width = 0.21
+    height = 0.21
+  } 
+  
+
+  
+//  Capt PFD
+  RectangularZone : { 
+    name = "PFD_Capt" 
+    lowerLeft = .15, 0.04 
+    width = 0.21 
+    height = 0.21
+  } 
+
+ 
+//  Capt NAV display  
+  RectangularZone : { 
+    name = "Nav_Capt" 
+    lowerLeft = .3775, 0.04 
+    width = 0.21
+    height = 0.21
+  } 
+  
+
+//  Capt FIMD 
+   RectangularZone : { 
+    name = "FIMD_Capt" 
+    lowerLeft = 0.035, 0.11 
+    width = 0.095 
+    height = 0.075 
+  } 
+ 
+  
+//  Upper EICAS
+  RectangularZone : { 
+    name = "UPPER_EICAS" 
+    lowerLeft = 0.69, 0.04 
+    width = 0.21
+    height = 0.21
+  }  
+
+  
+// FO  FIMD
+  RectangularZone : { 
+    name = "FIMD_FO" 
+    lowerLeft = 1.45, 0.11
+    width = 0.095 
+    height = 0.075 
+  } 
+
+  // Calibration points  
+  CalibrationPoint2D : {
+    name = "FIMD_FO"
+    center = 1.4975, 0.1475
+  }
+
+  CalibrationPoint2D : {
+    name = "PFD_FO" 
+    center = 1.32, 0.135
+  }
+
+  CalibrationPoint2D : {
+    name = "NAV_FO" 
+    center = 1.11, 0.15
+  }
+
+  CalibrationPoint2D : {
+    name = "UPPER_EICAS"
+    center = 0.795, 0.145
+  }
+
+}   // end of IP
+
+
+//  FO EFB
+  Plane : {
+  name = "EFB_FO" 
+  lowerRight = -.37, -0.422, 0.24
+  xAxis = 0.068, 0.038, 0.059 
+  yAxis = -0.096, 0.03, -0.129 
+  size = .20, 0.26
+  
+}
+  
+//  CDU Panel
+Plane : {
+  name = "CDU_Panel" 
+  lowerMiddle = 0.53, -0.662, .416
+  xAxis = -1, 0, 0 // 
+  yAxis = 0, 0.4588, 0.9659 // 15°
+  size = 0.51, 0.28 //measured to LRU edges
+  
+  RectangularZone : { 
+    name = "CDU_screen_Capt" //
+    lowerLeft = 0.014, 0.125 
+    width = 0.103 
+    height = 0.092 
+  } 
+
+  RectangularZone : { 
+    name = "CDU_screen_FO" 
+    lowerLeft = 0.384, 0.125 // 
+    width = 0.103
+    height = 0.092 
+  } 
+  
+  RectangularZone : { 
+    name = "CDU_Capt" 
+    lowerLeft = 0.0, 0.0 
+    width = 0.14 
+    height = 0.23 
+  } 
+  
+  RectangularZone : { 
+    name = "CDU_FO" 
+    lowerLeft = .370, 0.0 // 
+    width = 0.14 
+    height = 0.23 
+  } 
+
+//  FMC
+   CalibrationPoint2D : {
+     name = "FMC_FO"
+     center = 0.443, 0.1725  // 
+  }
+
+
+//  Lower EICAS
+   RectangularZone : { 
+     name = "MFD" 
+     lowerLeft = 0.165, 0.05
+     width = 0.18
+     height = 0.18 
+   }  
+  
+ }
+  
+//  Mode Control Panel
+  Plane : {
+  name = "MCP" 
+  lowerMiddle = 0.533, -0.202, .391
+  xAxis = -1, 0, 0 // optional, if undefined it will be 1, 0 ,0
+  yAxis = 0, 0.927, 0.374 // 22 deg.
+  size = 0.47, 0.08
+  
+     RectangularZone : { 
+      name = "EDCP_Capt" 
+      lowerLeft = -0.11, 0.0 
+      width = 0.11 
+      height = 0.06 
+     } 
+  
+     RectangularZone : { 
+      name = "EDCP_FO" 
+      lowerLeft = 0.47, 0.0 
+      width = 0.11 
+      height = 0.06 
+     } 
+  
+}
+  
+// Out the window
+Plane : {
+  name = "OutTheWindow" 
+  lowerMiddle = 0.533, -0.142, 1
+  // .533 for FO, -.533 for Capt
+  // Change it here, CDU and Glareshield
+  xAxis = -1, 0, 0 // optional, if undefined it will be 1, 0 ,0
+  yAxis = 0, 1, 0 // optional, if undefined it will be 0, 1, 0
+  size = 1.9, .2
+}
+
+// Overhead Panel
+Plane : {
+  name = "OverheadPanel" 
+  lowerMiddle = 0.515, 0.088, .266
+  // .533 for FO, -.533 for Capt
+  // Change it here, CDU and Glareshield
+  xAxis =  1, 0, 0 // optional, if undefined it will be 1, 0 ,0
+  yAxis =  0, .35, -.75  // optional, if undefined it will be 0, 1, 0
+  size = .67, .37
+}
+
+ 

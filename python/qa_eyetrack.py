@@ -29,7 +29,6 @@ file_types = ["smarteye_leftseat","smarteye_rightseat"]
 scenarios = ["1","2","3","6","7","8","9"]
 # file_types = ["smarteye_leftseat"]
 # scenarios = ["1"]
-crew_count = 0
 path_to_project = 'C:/Users/tfettrow/Box/SOTERIA'
 
 
@@ -111,7 +110,6 @@ for i_crew in range(len(crews_to_process)):
 					leftseat_heatmap[:,:,i_scenario] = empty_heatmap
 				elif file_types[i_seat] == "smarteye_rightseat":
 					rightseat_heatmap[:,:,i_scenario] = empty_heatmap
-
 
 	fig, ax = plt.subplots()
 	cbar_kws = { 'ticks' : [0, 100] }
