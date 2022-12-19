@@ -47,23 +47,23 @@ Plane : {
       lowerLeft = .225, 0.08 
       width = 0.08
       height = 0.10
-    } 
+    }
 
 	// PFD Altitude display
-    RectangularZone : { 
+    RectangularZone : {
       name = "PFD_Capt_Altitude" 
       lowerLeft = .325, 0.078 
       width = 0.025
       height = 0.11
-    } 
+    }
 
 	// PFD Heading display
-    RectangularZone : { 
+    RectangularZone : {
       name = "PFD_Capt_FMA" 
       lowerLeft = .22, 0.21 
       width = 0.09
       height = 0.022
-    } 
+    }
   
 
   
