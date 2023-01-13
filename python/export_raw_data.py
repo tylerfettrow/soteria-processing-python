@@ -25,10 +25,9 @@ def adjust_timestamps(datainput):
 ###############################################
 ## need to adjust this for gsutil ##
 #crew_dir = os.getcwd()
-#crews_to_process = ['Crew1', 'Crew2', 'Crew3', 'Crew4', 'Crew5', 'Crew6', 'Crew7', 'Crew8', 'Crew9', 'Crew10', 'Crew11', 'Crew12', 'Crew13']
-# crews_to_process = ['Crew_01', 'Crew_02', 'Crew_03', 'Crew_04', 'Crew_05', 'Crew_06', 'Crew_07', 'Crew_08', 'Crew_09', 'Crew_10', 'Crew_11', 'Crew_12', 'Crew_13']
-# crews_to_process = ['Crew_05']
-crews_to_process = ['Crew_09']
+crews_to_process = ['Crew_12']
+# crews_to_process = ['Crew_13']
+# crews_to_process = ['Crew_09']
 print(crews_to_process)
 path_to_project = 'C:/Users/tfettrow/Box/SOTERIA'
 

@@ -18,13 +18,10 @@ def update(val):
     fig.canvas.draw_idle()
 slider_color = 'White'				 
 
-# crews_to_process = ['Crew_01']
 crews_to_process = ['Crew_01', 'Crew_02', 'Crew_03', 'Crew_04', 'Crew_05', 'Crew_06', 'Crew_07', 'Crew_08', 'Crew_09', 'Crew_10', 'Crew_11', 'Crew_12', 'Crew_13']
 # crews_to_process = ['Crew_07', 'Crew_08', 'Crew_09', 'Crew_10', 'Crew_11', 'Crew_12', 'Crew_13']
-# crews_to_process = ['Crew_11']
-# crews_to_process = ['Crew_05']
+# crews_to_process = ['Crew_12']
 file_types = ["abm_leftseat","abm_rightseat"]
-# crews_to_process = ['Crew_09']
 # file_types = ["abm_leftseat"]
 # sample_Rate = 260
 
@@ -33,12 +30,12 @@ scenarios = ["1","2","3","5","6","7"]
 path_to_project = 'C:/Users/tfettrow/Box/SOTERIA'
 plot_raw = 0
 # plot_timeseries_psd = 1
-number_of_bands = 200
+number_of_epochs = 200
 
 for i_crew in range(len(crews_to_process)):
 	eeg_freq_storage = np.zeros((5,9,len(scenarios)))
-	eeg_freq_band_storage = np.zeros((5,9,len(scenarios),number_of_bands))
-	eeg_timesec_band_storage = np.zeros((len(scenarios),number_of_bands))
+	eeg_freq_band_storage = np.zeros((5,9,len(scenarios),number_of_epochs))
+	eeg_timesec_epoch_storage = np.zeros((len(scenarios),number_of_epochs))
 	crew_dir = path_to_project + '/' + crews_to_process[i_crew]
 	for i_scenario in range(len(scenarios)):
 		for i_seat in range(len(file_types)):
@@ -46,11 +43,11 @@ for i_crew in range(len(crews_to_process)):
 			if exists(process_dir_name + file_types[i_seat] + '_scenario' + scenarios[i_scenario] + '.csv'):
 				print("QA checking ECG: " + process_dir_name + file_types[i_seat] + '_scenario' + scenarios[i_scenario] + '.csv')
 				abm_data = pd.read_table((process_dir_name + file_types[i_seat] + '_scenario' + scenarios[i_scenario] + '.csv'),delimiter=',')
-				ch_names = ['Fz','F3','F4','Cz','C3','C4','POz','P3','P4']
+				ch_names = ['F3','Fz','F4','C3','Cz','C4','P3','POz','P4']
 				sfreq = 256
 				info = mne.create_info(ch_names, sfreq,ch_types='eeg') # WARNING: for some reason 'eeg' multiplies amplitude by 1mill?? not sure why
 				# data = {'UserTimeStamp':abm_data.UserTimeStamp, 'POz':abm_data.POz , 'Fz':abm_data.Fz, 'Cz':abm_data.Cz, 'C3':abm_data.C3, 'C4':abm_data.C4, 'F3':abm_data.F3, 'F4':abm_data.F4, 'P3':abm_data.P3, 'P4':abm_data.P4} 
-				data = {'Fz':abm_data.Fz, 'F3':abm_data.F3, 'F4':abm_data.F4, 'Cz':abm_data.Cz, 'C3':abm_data.C3, 'C4':abm_data.C4, 'POz':abm_data.POz , 'P3':abm_data.P3, 'P4':abm_data.P4} 
+				data = {'F3':abm_data.F3,'Fz':abm_data.Fz, 'F4':abm_data.F4, 'C3':abm_data.C3, 'Cz':abm_data.Cz, 'C4':abm_data.C4, 'P3':abm_data.P3,'POz':abm_data.POz , 'P4':abm_data.P4} 
 				eeg = pd.DataFrame(data = data) #, abm_data.Fz, abm_data.Cz, abm_data.C3, abm_data.C4, abm_data.F3, abm_data.F4, abm_data.P3, abm_data.P4)
 				eeg_trans = eeg.T/1000000 # adjusting for eeg multiplier
 				raw = mne.io.RawArray(eeg_trans, info)
@@ -95,19 +92,19 @@ for i_crew in range(len(crews_to_process)):
 				this_data = raw_filt.get_data()
 				length_this_data = this_data.shape[1]
 
-				for this_band in range(number_of_bands):
-					this_band_indices_start = np.floor(length_this_data/number_of_bands) * this_band
-					this_band_indices_end = this_band_indices_start + np.floor(length_this_data/number_of_bands)
-					eeg_timesec_band_storage[i_scenario,this_band] = abm_data.UserTimeStamp[this_band_indices_start]
+				for this_epoch in range(number_of_epochs):
+					this_epoch_indices_start = np.floor(length_this_data/number_of_epochs) * this_epoch
+					this_epoch_indices_end = this_epoch_indices_start + np.floor(length_this_data/number_of_epochs)
+					eeg_timesec_epoch_storage[i_scenario,this_epoch] = abm_data.UserTimeStamp[this_epoch_indices_start]
 
-					(f, S) = signal.welch(this_data[:,int(this_band_indices_start):int(this_band_indices_end)], sfreq)
-					this_band_psd = 10 * np.log10(S.T) + 120 # convert to dB  # WARNING: no idea why 120 is needed here, but it results in similar values to the mne.compute_psd
+					(f, S) = signal.welch(this_data[:,int(this_epoch_indices_start):int(this_epoch_indices_end)], sfreq)
+					this_epoch_psd = 10 * np.log10(S.T) + 120 # convert to dB  # WARNING: no idea why 120 is needed here, but it results in similar values to the mne.compute_psd
 					
-					eeg_freq_band_storage[0,:,i_scenario,this_band] = this_band_psd[0:4,:].mean(0)   	# delta		
-					eeg_freq_band_storage[1,:,i_scenario,this_band] = this_band_psd[4:8,:].mean(0)   	# theta
-					eeg_freq_band_storage[2,:,i_scenario,this_band] = this_band_psd[8:13,:].mean(0)  	# alpha
-					eeg_freq_band_storage[3,:,i_scenario,this_band] = this_band_psd[13:30,:].mean(0) 	# beta
-					eeg_freq_band_storage[4,:,i_scenario,this_band] = this_band_psd[30:45,:].mean(0) 	# gamma
+					eeg_freq_band_storage[0,:,i_scenario,this_epoch] = this_epoch_psd[0:4,:].mean(0)   	# delta		
+					eeg_freq_band_storage[1,:,i_scenario,this_epoch] = this_epoch_psd[4:8,:].mean(0)   	# theta
+					eeg_freq_band_storage[2,:,i_scenario,this_epoch] = this_epoch_psd[8:13,:].mean(0)  	# alpha
+					eeg_freq_band_storage[3,:,i_scenario,this_epoch] = this_epoch_psd[13:30,:].mean(0) 	# beta
+					eeg_freq_band_storage[4,:,i_scenario,this_epoch] = this_epoch_psd[30:45,:].mean(0) 	# gamma
 				
 				# https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4712412/
 				# if plot_timeseries_psd:
@@ -120,10 +117,10 @@ for i_crew in range(len(crews_to_process)):
 				
 				if i_seat == 0:
 					np.save(crew_dir + "/Processing/" + 'eeg_freq_band_storage_leftseat', eeg_freq_band_storage)
-					np.save(crew_dir + "/Processing/" + 'eeg_timesec_band_storage_leftseat', eeg_timesec_band_storage)
+					np.save(crew_dir + "/Processing/" + 'eeg_timesec_epoch_storage_leftseat', eeg_timesec_epoch_storage)
 				if i_seat == 1:
 					np.save(crew_dir + "/Processing/" + 'eeg_freq_band_storage_rightseat', eeg_freq_band_storage)
-					np.save(crew_dir + "/Processing/" + 'eeg_timesec_band_storage_rightseat', eeg_timesec_band_storage)
+					np.save(crew_dir + "/Processing/" + 'eeg_timesec_epoch_storage_rightseat', eeg_timesec_epoch_storage)
 
 				trial_psd_data = raw_filt.compute_psd()
 				if plot_raw:

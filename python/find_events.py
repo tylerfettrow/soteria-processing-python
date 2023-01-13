@@ -18,7 +18,7 @@ for i_crew in range(len(crews_to_process)):
 
 	for i_scenario in range(len(scenarios)):
 
-		print("finding events: " + process_dir_name + scenarios[i_scenario])
+		print("finding events: " + process_dir_name + 'scenario'+scenarios[i_scenario])
 
 		if scenarios[i_scenario] == "1":
 			event_vector_timesec[:,i_scenario] = [130, 865]
