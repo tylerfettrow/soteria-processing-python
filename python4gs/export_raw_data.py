@@ -51,10 +51,10 @@ for this_crew in crews_to_process:
 	blob.download_to_filename("test2")
 
 	# Get blobs in bucket (including all subdirectories)
-	blobs_all = list(bucket.list_blobs())
+	# blobs_all = list(bucket.list_blobs())
 
 	# Get blobs in specific subirectory
-	blobs_specific = list(bucket.list_blobs(prefix=crew_dir + '/Synched/', delimiter="/",max_results=1))
+	blobs_specific = (bucket.list_blobs(prefix=crew_dir + '/Synched/', delimiter="/",max_results=1)
 	
 	print(blobs_specific)
 	print(blobs_specific.prefixes)
