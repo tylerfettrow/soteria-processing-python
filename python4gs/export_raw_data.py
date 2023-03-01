@@ -46,7 +46,7 @@ crews_to_process = ['Crew_02']
 
 for this_crew in crews_to_process:
 	# crew_dir = path_to_project + '/' + this_crew
-
+	crew_dir = this_crew
 	blob = bucket.blob(crew_dir + '/trial_settings.txt')
 	blob.download_to_filename("test2")
 
