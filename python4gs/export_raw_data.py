@@ -49,14 +49,17 @@ crews_to_process = ['Crew_02']
 for this_crew in crews_to_process:
 	# crew_dir = path_to_project + '/' + this_crew
 	crew_dir = this_crew
+	
 	blob = bucket.blob(crew_dir + '/trial_settings.txt')
+	trial_settings = pd.read_table(blob)
 	blob = blob.download_as_string()
 	blob = blob.decode('utf-8')
 	blob = StringIO(blob)  #tranform bytes to string here
 
-	trial_settings = csv.reader(blob)
+	# trial_settings = csv.reader(blob)
 
 	print(trial_settings)
+	
 	break
 
 
@@ -71,7 +74,7 @@ for this_crew in crews_to_process:
 	# trial_folders = list(blobs_specific.prefixes)
 
 
-	trial_settings = pd.read_table(crew_dir + '/trial_settings.txt',delimiter=',')
+	
 	
 	if not os.path.isdir(crew_dir + "/Processing"):
 		os.mkdir(crew_dir + "/Processing")
