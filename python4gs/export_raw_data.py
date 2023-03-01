@@ -48,24 +48,26 @@ for this_crew in crews_to_process:
 	# crew_dir = path_to_project + '/' + this_crew
 	crew_dir = this_crew
 	blob = bucket.blob(crew_dir + '/trial_settings.txt')
-	blob.download_to_filename("test2")
+	blob = blob.download_as_string()
+	blob = blob.decode('utf-8')
+	blob = StringIO(blob)  #tranform bytes to string here
+
+	trial_settings = csv.reader(blob)
+
+	print(trial_settings)
+	break
+
 
 	# Get blobs in bucket (including all subdirectories)
 	# blobs_all = list(bucket.list_blobs())
 
 	# Get blobs in specific subirectory
-	blobs_specific = bucket.list_blobs(prefix=crew_dir + '/Synched/', delimiter="/",max_results=1)
+	# blobs_specific = bucket.list_blobs(prefix=crew_dir + '/Synched/', delimiter="/",max_results=1)
 	
-	print(list(blobs_specific))
-	# next(blobs_specific, ...)
-	print("prefixes:")
-	print(list(blobs_specific.prefixes))
-	
-	print("before break")
-	break
-	print("after break")
-	# print(crew_dir)
-	trial_folders = os.listdir(crew_dir + '/Synched')
+	# print("prefixes:")
+	# print(list(blobs_specific.prefixes))
+	# trial_folders = list(blobs_specific.prefixes)
+
 
 	trial_settings = pd.read_table(crew_dir + '/trial_settings.txt',delimiter=',')
 	
