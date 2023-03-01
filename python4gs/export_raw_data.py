@@ -39,7 +39,7 @@ bucket = storage.Bucket(storage_client, "soteria_study_data", user_project="sote
 #print(all_blobs)
 
 #crews_to_process = ['Crew1', 'Crew2', 'Crew3', 'Crew4', 'Crew5', 'Crew6', 'Crew7', 'Crew8', 'Crew9', 'Crew10', 'Crew11', 'Crew12', 'Crew13']
-crews_to_process = ['Crew1']
+crews_to_process = ['Crew_02']
 #print(crews_to_process)
 #path_to_project = 'C:/Users/tfettrow/Box/SOTERIA'
 ###############################################
@@ -49,6 +49,13 @@ for this_crew in crews_to_process:
 
 	blob = bucket.blob(crew_dir + '/trial_settings.txt')
 	blob.download_to_filename("test2")
+
+	# Get blobs in bucket (including all subdirectories)
+	blobs_all = list(bucket.list_blobs())
+
+	# Get blobs in specific subirectory
+	blobs_specific = list(bucket.list_blobs(prefix=crew_dir + '/Synched'))
+	print(blobs_specific)
 
 	print("before break")
 	break
