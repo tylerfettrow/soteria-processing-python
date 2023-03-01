@@ -57,9 +57,9 @@ for this_crew in crews_to_process:
 	blobs_specific = bucket.list_blobs(prefix=crew_dir + '/Synched/', delimiter="/",max_results=1)
 	
 	print(list(blobs_specific))
-	next(blobs_specific, ...)
+	# next(blobs_specific, ...)
 	print("prefixes:")
-	print(blobs_specific.prefixes)
+	print(list(blobs_specific.prefixes))
 	
 	print("before break")
 	break
