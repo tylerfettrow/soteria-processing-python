@@ -24,7 +24,8 @@ validate-gcp:
 
       # Feel free to modify the code below here 
     - pip install google-cloud-storage wheel pandas awkward numpy
-    - python python4gs/export_raw_data.py 
+    - python python4gs/export_raw_data.py
+    
     # - python python/eeg.py
     # - python python/audio.py
 
