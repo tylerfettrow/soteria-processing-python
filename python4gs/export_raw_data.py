@@ -5,6 +5,11 @@ import numpy as np
 from os.path import exists
 from datetime import datetime
 #from google.cloud import storage
+from google.cloud import storage
+#bucket_name = os.getenv("soteria_study_data")
+
+#print("APPDAT SIMPLE STORAGE SERVICE | Currently connected to Bucket: " + bucket_name)
+
 
 def adjust_timestamps(datainput):
 	timestamps_time = np.zeros(len(datainput.UserTimeStamp))
@@ -18,25 +23,37 @@ def adjust_timestamps(datainput):
 		this_timestamp_time_string_split = this_timestamp_time_string.split(':')
 		timestamps_time[this_index] = float(this_timestamp_time_string_split[0]) * 3600 + float(this_timestamp_time_string_split[1]) * 60 + float(this_timestamp_time_string_split[2])
 
-	timestamps_time_adjusted = timestamps_time - timestamps_time[0]
+	timestamps_time_adjusted = timestamps_time - timestamps_time[0]	
 	datainput.UserTimeStamp = timestamps_time_adjusted
 	return datainput
+
 
 ###############################################
 ## need to adjust this for gsutil ##
 #crew_dir = os.getcwd()
-crews_to_process = ['Crew_01']
-# crews_to_process = ['Crew_13']
-# crews_to_process = ['Crew_09']
-print(crews_to_process)
-path_to_project = 'C:/Users/tfettrow/Box/SOTERIA'
 
+storage_client = storage.Client(project="soteria-fa59")
+#bucket = storage_client.bucket("soteria_study_data")
+bucket = storage.Bucket(storage_client, "soteria_study_data", user_project="soteria-fa59")
+#all_blobs = list(storage_client.list_blobs(bucket))
+#print(all_blobs)
+
+#crews_to_process = ['Crew1', 'Crew2', 'Crew3', 'Crew4', 'Crew5', 'Crew6', 'Crew7', 'Crew8', 'Crew9', 'Crew10', 'Crew11', 'Crew12', 'Crew13']
+crews_to_process = ['Crew1']
+#print(crews_to_process)
+#path_to_project = 'C:/Users/tfettrow/Box/SOTERIA'
 ###############################################
 
 for this_crew in crews_to_process:
 	crew_dir = path_to_project + '/' + this_crew
 
-	print(crew_dir)
+	blob = bucket.blob(crew_dir + '/trial_settings.txt')
+	blob.download_to_filename("test2")
+
+	print("before break")
+	break
+	print("after break")
+	# print(crew_dir)
 	trial_folders = os.listdir(crew_dir + '/Synched')
 
 	trial_settings = pd.read_table(crew_dir + '/trial_settings.txt',delimiter=',')
