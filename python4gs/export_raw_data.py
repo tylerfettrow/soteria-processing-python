@@ -54,7 +54,7 @@ for this_crew in crews_to_process:
 	# blobs_all = list(bucket.list_blobs())
 
 	# Get blobs in specific subirectory
-	blobs_specific = (bucket.list_blobs(prefix=crew_dir + '/Synched/', delimiter="/",max_results=1)
+	blobs_specific = bucket.list_blobs(prefix=crew_dir + '/Synched/', delimiter="/",max_results=1)
 	
 	print(blobs_specific)
 	print(blobs_specific.prefixes)
