@@ -172,14 +172,15 @@ for this_crew = 1:length(crew_ids)
 %                 saveas(gca,fullfilename,'tif');
 %             end
 
-             figure; hold on;
+            figure; hold on;
             plot(abm_rightseat.UserTimeStamp, ekg_rightseat)
-             set(gcf, 'ToolBar', 'none');
-        set(gcf, 'MenuBar', 'none');
-        set(get(gca, 'xlabel'), 'visible', 'off');
-        set(get(gca, 'ylabel'), 'visible', 'off');
-        set(get(gca, 'title'), 'visible', 'off');
-        legend(gca, 'hide');
+            set(gcf, 'ToolBar', 'none');
+            set(gcf, 'MenuBar', 'none');
+            set(get(gca, 'xlabel'), 'visible', 'off');
+            set(get(gca, 'ylabel'), 'visible', 'off');
+            set(get(gca, 'title'), 'visible', 'off');
+            legend(gca, 'hide');
+            saveas(gcf,string(path_to_project, "/Figures/", 'smarteyeGaze_',crew_ids(i_crew), '.tif'))
         end
        
     end

@@ -20,7 +20,7 @@ slider_color = 'White'
 
 crews_to_process = ['Crew_01', 'Crew_02', 'Crew_03', 'Crew_04', 'Crew_05', 'Crew_06', 'Crew_07', 'Crew_08', 'Crew_09', 'Crew_10', 'Crew_11', 'Crew_12', 'Crew_13']
 # crews_to_process = ['Crew_07', 'Crew_08', 'Crew_09', 'Crew_10', 'Crew_11', 'Crew_12', 'Crew_13']
-# crews_to_process = ['Crew_12']
+crews_to_process = ['Crew_01']
 file_types = ["abm_leftseat","abm_rightseat"]
 # file_types = ["abm_leftseat"]
 # sample_Rate = 260
@@ -37,8 +37,10 @@ for i_crew in range(len(crews_to_process)):
 	eeg_freq_band_storage = np.zeros((5,9,len(scenarios),number_of_epochs))
 	eeg_timesec_epoch_storage = np.zeros((len(scenarios),number_of_epochs))
 	crew_dir = path_to_project + '/' + crews_to_process[i_crew]
-	for i_scenario in range(len(scenarios)):
-		for i_seat in range(len(file_types)):
+	for i_seat in range(len(file_types)):
+		for i_scenario in range(len(scenarios)):	
+			# eeg_freq_band_storage = None
+			# eeg_freq_band_storage = np.zeros((4,9,len(scenarios),number_of_epochs))
 			process_dir_name = crew_dir + "/Processing/"
 			if exists(process_dir_name + file_types[i_seat] + '_scenario' + scenarios[i_scenario] + '.csv'):
 				print("QA checking ECG: " + process_dir_name + file_types[i_seat] + '_scenario' + scenarios[i_scenario] + '.csv')
@@ -123,8 +125,8 @@ for i_crew in range(len(crews_to_process)):
 					np.save(crew_dir + "/Processing/" + 'eeg_timesec_epoch_storage_rightseat', eeg_timesec_epoch_storage)
 
 				trial_psd_data = raw_filt.compute_psd()
-				if plot_raw:
-					trial_psd_data.plot()
+				# if plot_raw:
+				# 	trial_psd_data.plot()
 				this_trial_data = trial_psd_data.get_data()
 				this_trial_data = 10 * np.log10(this_trial_data) + 120 # convert to dB  # WARNING: no idea why 120 is needed here
 				this_trial_data = this_trial_data.T
