@@ -151,7 +151,7 @@
   
 //  CDU Panel
 Plane : {
-  name = "CDU_Panel" 
+  name = "CDU_Panel"
   lowerMiddle = 0.53, -0.662, .416
   xAxis = -1, 0, 0 // 
   yAxis = 0, 0.4588, 0.9659 // 15°
