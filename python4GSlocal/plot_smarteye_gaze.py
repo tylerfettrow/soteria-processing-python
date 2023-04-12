@@ -15,6 +15,35 @@ from distinctipy import distinctipy
 from tensorflow.python.lib.io import file_io
 import io
 
+def getCrewInt(crewID):
+	if (crewID == 'Crew_01'):
+		b = 1
+	elif (crewID == 'Crew_02'):
+		b = 2
+	elif (crewID == 'Crew_03'):
+		b = 3
+	elif (crewID == 'Crew_04'):
+		b = 4
+	elif (crewID == 'Crew_05'):
+		b = 5
+	elif (crewID == 'Crew_06'):
+		b = 6
+	elif (crewID == 'Crew_07'):
+		b = 7
+	elif (crewID == 'Crew_08'):
+		b = 8
+	elif (crewID == 'Crew_09'):
+		b = 9
+	elif (crewID == 'Crew_10'):
+		b = 10
+	elif (crewID == 'Crew_11'):
+		b = 11
+	elif (crewID == 'Crew_12'):
+		b = 12
+	elif (crewID == 'Crew_13'):
+		b = 13
+	return b
+
 def sphere_stereograph(p):
 	# p = np.squeeze(direction_gaze[:,good_indices])
 
@@ -78,27 +107,28 @@ def variance(a, n, m):
  
     return sum / (n * n);
 
-crews_to_process = ['Crew_01','Crew_02','Crew_03', 'Crew_04','Crew_05', 'Crew_06', 'Crew_07', 'Crew_08', 'Crew_09', 'Crew_10', 'Crew_11', 'Crew_12', 'Crew_13']
+crews_to_process = ['Crew_01','Crew_02','Crew_03', 'Crew_04','Crew_05', 'Crew_06', 'Crew_07', 'Crew_08', 'Crew_09', 'Crew_10', 'Crew_11', 'Crew_13']
 crews_to_process = ['Crew_13']
 file_types = ["smarteye_leftseat", "smarteye_rightseat"]
 scenarios = ["1","2","3","5","6","7"]
+time_per_epoch_4_analysis = 10
 
 storage_client = storage.Client(project="soteria-fa59")
 bucket = storage_client.bucket("soteria_study_data")
 bucket = storage.Bucket(storage_client, "soteria_study_data", user_project="soteria-fa59")
 
 plt.style.use('dark_background')
-
 for i_crew in range(len(crews_to_process)):
 	process_dir_name = crews_to_process[i_crew] + "/Processing/"
 	
+	event_smarteyeGazeTimeSeries_metrics = pd.DataFrame()
 	total_gaze_variance_matrix = np.zeros((len(file_types),len(scenarios)))
 	total_gaze_velocity_avg_matrix = np.zeros((len(file_types),len(scenarios)))
 	total_gaze_velocity_std_matrix = np.zeros((len(file_types),len(scenarios)))
 	# event_smarteyeGaze_metrics = np.zeros((3,3,len(file_types),len(scenarios)))
 
 	event_smarteyeGaze_metrics = np.zeros((len(scenarios)*2,12))
-	event_smarteyeGaze_metrics[:, 0] = int(i_crew + 1)
+	event_smarteyeGaze_metrics[:, 0] = getCrewInt(crews_to_process[i_crew])
 	event_smarteyeGaze_column_values = ['crew', 'seat', 'scenario', 'gaze_variance_control', 'gaze_variance_event1', 'gaze_variance_event2', 'gaze_vel_avg_control', 'gaze_vel_avg_event1', 'gaze_vel_avg_event2', 'gaze_vel_std_control', 'gaze_vel_std_event1', 'gaze_vel_std_event2']
 
 	f_stream = file_io.FileIO('gs://soteria_study_data/'+ process_dir_name + 'event_vector_scenario.npy', 'rb')
@@ -120,6 +150,7 @@ for i_crew in range(len(crews_to_process)):
 		os.mkdir("Processing")
 		
 	for i_scenario in range(len(scenarios)):
+		# if (getCrewInt(crews_to_process[i_crew]) != 13) & 
 		if (scenarios[i_scenario] != '5'):
 			print("Processing Crew: " + crews_to_process[i_crew] + " Scenario: " +scenarios[i_scenario])
 			for i_seat in range(len(file_types)):
@@ -229,6 +260,35 @@ for i_crew in range(len(crews_to_process)):
 							event_smarteyeGaze_metrics[i_scenario*2+1, 9] = np.nanstd(twomin_good_vel_vals[1:])
 							event_smarteyeGaze_metrics[i_scenario*2+1, 10] = np.nanstd(event1_good_vel_vals[1:])
 							event_smarteyeGaze_metrics[i_scenario*2+1, 11] = np.nanstd(event2_good_vel_vals[1:])
+
+						number_of_epochs_this_scenario = np.floor(time_vector.shape[0]/time_per_epoch_4_analysis)
+						this_smarteyeGazeTimeSeries_np = np.zeros((int(number_of_epochs_this_scenario), 8))
+						# event_smarteyeTime_column_values = ['crew', 'seat', 'scenario', 'event_label', 'headHeading_avg', 'headHeading_std', 'pupilD_avg', 'pupilD_std']
+						this_smarteyeGazeTimeSeries_np[:,0] = getCrewInt(crews_to_process[i_crew])
+						if (i_seat == 0):
+							this_smarteyeGazeTimeSeries_np[:,1] = 0
+						else:
+							this_smarteyeGazeTimeSeries_np[:,1] = 1
+						this_smarteyeGazeTimeSeries_np[:,2] = i_scenario
+						for this_epoch in range(int(number_of_epochs_this_scenario)):
+							if ((time_vector[10*this_epoch] > this_event_data[0, i_scenario] - 60) & (time_vector[10*this_epoch] < this_event_data[0, i_scenario] + 60)) | ((time_vector[10*this_epoch] > this_event_data[1, i_scenario] - 60) & (time_vector[10*this_epoch] < this_event_data[1, i_scenario] + 60)):
+								this_smarteyeGazeTimeSeries_np[this_epoch, 3] = 1
+							else:
+								this_smarteyeGazeTimeSeries_np[this_epoch, 3] = 0
+							this_smarteyeGazeTimeSeries_np[this_epoch, 4] = this_epoch
+							this_good_indices = np.squeeze(np.where((good_indices > 10*this_epoch) & (good_indices < 10*this_epoch + 10)))
+							if (this_good_indices.size > 1):
+								this_smarteyeGazeTimeSeries_np[this_epoch, 5] = variance(projected_planar_coords[:,this_good_indices], 2, mean(projected_planar_coords[:,this_good_indices],1))
+								this_smarteyeGazeTimeSeries_np[this_epoch, 6] = np.nanmean(np.squeeze(degree_per_sec_vector[this_good_indices]))
+								this_smarteyeGazeTimeSeries_np[this_epoch, 7] = np.nanstd(np.squeeze(degree_per_sec_vector[this_good_indices]))
+							else:
+								this_smarteyeGazeTimeSeries_np[this_epoch, 5] = np.nan
+								this_smarteyeGazeTimeSeries_np[this_epoch, 6] = np.nan
+								this_smarteyeGazeTimeSeries_np[this_epoch, 7] = np.nan
+						this_smarteyeGazeTimeSeries_df = pd.DataFrame(this_smarteyeGazeTimeSeries_np)
+						this_smarteyeGazeTimeSeries_df.columns = ['crew', 'seat', 'scenario', 'event_label', 'epoch_index', 'gaze_variance', 'gaze_vel_avg', 'gaze_vel_std']
+
+						event_smarteyeGazeTimeSeries_metrics = event_smarteyeGazeTimeSeries_metrics.append(this_smarteyeGazeTimeSeries_df)
 					else:
 						difference_array = np.absolute(time_vector - ((time_vector[-1]/2) - 150))
 						fivemin_start_index = difference_array.argmin()
@@ -372,21 +432,22 @@ for i_crew in range(len(crews_to_process)):
 					total_gaze_velocity_avg_matrix[i_seat, i_scenario] = total_average_gaze_velocity
 					total_gaze_velocity_std_matrix[i_seat, i_scenario] = total_std_gaze_velocity
 
-		plt.xlim((-1, 1))
-		plt.ylim((-1, 0))
-		fig1.set_size_inches((22, 11))
-		ax = plt.gca()
-		ax.get_xaxis().set_visible(False)
-		ax.axis('off')
-		plt.savefig('Figures/smarteyeGaze_'+scenarios[i_scenario]+'.jpg')
-		# plt.show()
-		# matplotlib.pyplot.close()
-		plt.close()
-		np.save("Processing/" + 'gaze_variance_matrix',total_gaze_variance_matrix)
-		np.save("Processing/" + 'gaze_velocity_avg_matrix',total_gaze_velocity_avg_matrix)
-		np.save("Processing/" + 'gaze_velocity_std_matrix',total_gaze_velocity_std_matrix)
-		np.save("Processing/" + 'event_smarteyeGaze_metrics', event_smarteyeGaze_metrics)
-		subprocess.call('gsutil -m rsync -r Figures/ "gs://soteria_study_data/"'+ crews_to_process[i_crew] + '"/Figures"', shell=True)
-		subprocess.call('gsutil -m rsync -r Processing/ "gs://soteria_study_data/"'+ crews_to_process[i_crew] + '"/Processing"', shell=True)
+	plt.xlim((-1, 1))
+	plt.ylim((-1, 0))
+	# fig1.set_size_inches((22, 11))
+	ax = plt.gca()
+	ax.get_xaxis().set_visible(False)
+	ax.axis('off')
+	plt.savefig('Figures/smarteyeGaze_'+scenarios[i_scenario]+'.jpg')
+	# plt.show()
+	# matplotlib.pyplot.close()
+	plt.close()
+	np.save("Processing/" + 'gaze_variance_matrix',total_gaze_variance_matrix)
+	np.save("Processing/" + 'gaze_velocity_avg_matrix',total_gaze_velocity_avg_matrix)
+	np.save("Processing/" + 'gaze_velocity_std_matrix',total_gaze_velocity_std_matrix)
+	np.save("Processing/" + 'event_smarteyeGaze_metrics', event_smarteyeGaze_metrics)
+	event_smarteyeGazeTimeSeries_metrics.to_csv("Processing/" + 'event_smarteyeGazeTimeSeries_metrics.csv')
+	subprocess.call('gsutil -m rsync -r Figures/ "gs://soteria_study_data/"'+ crews_to_process[i_crew] + '"/Figures"', shell=True)
+	subprocess.call('gsutil -m rsync -r Processing/ "gs://soteria_study_data/"'+ crews_to_process[i_crew] + '"/Processing"', shell=True)
 
 

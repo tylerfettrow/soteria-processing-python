@@ -16,7 +16,36 @@ import io
 import math
 import statistics
 
-crews_to_process = ['Crew_01','Crew_02','Crew_03', 'Crew_04','Crew_05', 'Crew_06', 'Crew_07', 'Crew_08', 'Crew_09', 'Crew_10', 'Crew_11', 'Crew_12', 'Crew_13']
+def getCrewInt(crewID):
+	if (crewID == 'Crew_01'):
+		b = 1
+	elif (crewID == 'Crew_02'):
+		b = 2
+	elif (crewID == 'Crew_03'):
+		b = 3
+	elif (crewID == 'Crew_04'):
+		b = 4
+	elif (crewID == 'Crew_05'):
+		b = 5
+	elif (crewID == 'Crew_06'):
+		b = 6
+	elif (crewID == 'Crew_07'):
+		b = 7
+	elif (crewID == 'Crew_08'):
+		b = 8
+	elif (crewID == 'Crew_09'):
+		b = 9
+	elif (crewID == 'Crew_10'):
+		b = 10
+	elif (crewID == 'Crew_11'):
+		b = 11
+	elif (crewID == 'Crew_12'):
+		b = 12
+	elif (crewID == 'Crew_13'):
+		b = 13
+	return b
+
+crews_to_process = ['Crew_01','Crew_02','Crew_03', 'Crew_04','Crew_05', 'Crew_06', 'Crew_07', 'Crew_08', 'Crew_09', 'Crew_10', 'Crew_11', 'Crew_13']
 crews_to_process = ['Crew_13']
 file_types = ["smarteye_leftseat","smarteye_rightseat"]
 scenarios = ["1","2","3","5","6","7"]
@@ -68,6 +97,7 @@ plot_heatmap_and_qatable = 0 # embeds pct_usable value too
 vertical_mm = 1575
 horizontal_mm = 400
 number_of_epochs = 1000
+time_per_epoch_4_analysis = 10
 
 for i_crew in range(len(crews_to_process)):
 	pct_usable_matrix = np.zeros((len(scenarios),len(file_types)))
@@ -81,16 +111,18 @@ for i_crew in range(len(crews_to_process)):
 	smarteye_timesec_epoch_storage = np.zeros((len(scenarios),number_of_epochs))
 	# event_smarteyeTime_metrics = np.zeros((4,3,len(file_types),len(scenarios)))
 
+	event_smarteyeTimeSeries_metrics = pd.DataFrame()
 	event_smarteyeTime_metrics = np.zeros((len(scenarios)*2,15))
-	event_smarteyeTime_metrics[:, 0] = int(i_crew + 1)
-	event_smarteyeTime_column_values = ['crew', 'seat', 'scenario', 'headHeading_avg_control', 'headHeading_avg_event1', 'headHeading_avg_event2', 'headHeading_std_control', 'headHeading_std_event1', 'headHeading_std_event2', 'pupilD_avg_control', 'pupilD_avg_event1', 'pupilD_avg_event2', 'pupilD_std_control', 'pupilD_std_event1', 'pupilD_std_event2']
+	event_smarteyeTime_metrics[:, 0] = getCrewInt(crews_to_process[i_crew])
+	event_smarteyeTime_column_values = ['crew', 'seat', 'scenario', 'headHeading_avg', 'headHeading_std', 'pupilD_avg', 'pupilD_std']
 
 	f_stream = file_io.FileIO('gs://soteria_study_data/'+ process_dir_name + 'event_vector_scenario.npy', 'rb')
 	this_event_data = np.load(io.BytesIO(f_stream.read()))
 
 	for i_scenario in range(len(scenarios)):
+		# if (getCrewInt(crews_to_process[i_crew]) != 13) & 
 		if (scenarios[i_scenario] != '5'):
-			print("Processing Crew: " + crews_to_process[i_crew] + " Scenario: " scenarios[i_scenario])
+			print("Processing Crew: " + crews_to_process[i_crew] + " Scenario: "+scenarios[i_scenario])
 			for i_seat in range(len(file_types)):
 				if (i_seat == 0):
 					event_smarteyeTime_metrics[i_scenario*2, 1] = 0
@@ -196,6 +228,29 @@ for i_crew in range(len(crews_to_process)):
 							event_smarteyeTime_metrics[i_scenario*2+1, 13] = statistics.stdev(pupilD[pupilD_event1_good_indices])
 							event_smarteyeTime_metrics[i_scenario*2+1, 14] = statistics.stdev(pupilD[pupilD_event2_good_indices])
 
+						number_of_epochs_this_scenario = np.floor(time_vector.shape[0]/time_per_epoch_4_analysis)
+						this_smarteyeTimeSeries_np = np.zeros((int(number_of_epochs_this_scenario), 9))
+						# event_smarteyeTime_column_values = ['crew', 'seat', 'scenario', 'event_label', 'headHeading_avg', 'headHeading_std', 'pupilD_avg', 'pupilD_std']
+						this_smarteyeTimeSeries_np[:,0] = getCrewInt(crews_to_process[i_crew])
+						if (i_seat == 0):
+							this_smarteyeTimeSeries_np[:,1] = 0
+						else:
+							this_smarteyeTimeSeries_np[:,1] = 1
+						this_smarteyeTimeSeries_np[:,2] = i_scenario
+						for this_epoch in range(int(number_of_epochs_this_scenario)):
+							if ((time_vector[10*this_epoch] > this_event_data[0, i_scenario] - 60) & (time_vector[10*this_epoch] < this_event_data[0, i_scenario] + 60)) | ((time_vector[10*this_epoch] > this_event_data[1, i_scenario] - 60) & (time_vector[10*this_epoch] < this_event_data[1, i_scenario] + 60)):
+								this_smarteyeTimeSeries_np[this_epoch, 3] = 1
+							else:
+								this_smarteyeTimeSeries_np[this_epoch, 3] = 0
+
+							this_smarteyeTimeSeries_np[this_epoch, 4] = this_epoch
+							this_smarteyeTimeSeries_np[this_epoch, 5] = np.nanmean(headheadingDeg_rate[10*this_epoch:10*this_epoch + 10])
+							this_smarteyeTimeSeries_np[this_epoch, 6] = np.nanstd(headheadingDeg_rate[10*this_epoch:10*this_epoch + 10])
+							this_smarteyeTimeSeries_np[this_epoch, 7] = np.nanmean(pupilD[10*this_epoch:10*this_epoch + 10])
+							this_smarteyeTimeSeries_np[this_epoch, 8] = np.nanstd(pupilD[10*this_epoch:10*this_epoch + 10])
+						this_smarteyeTimeSeries_df = pd.DataFrame(this_smarteyeTimeSeries_np)
+						this_smarteyeTimeSeries_df.columns = ['crew', 'seat', 'scenario', 'event_label', 'epoch_index','headHeading_avg', 'headHeading_std', 'pupilD_avg', 'pupilD_std']
+						event_smarteyeTimeSeries_metrics = event_smarteyeTimeSeries_metrics.append(this_smarteyeTimeSeries_df)
 					else:
 						difference_array = np.absolute(time_vector - ((time_vector[-1]/2) - 150))
 						fivemin_start_index = difference_array.argmin()
@@ -262,13 +317,13 @@ for i_crew in range(len(crews_to_process)):
 							elif file_types[i_seat] == "smarteye_rightseat":
 								rightseat_heatmap[:,:,i_scenario] = empty_heatmap
 
-	if plot_heatmap_and_qatable:
-		plt.subplots_adjust(wspace=0, hspace=0)
-		plt.style.use("dark_background")
-		# plt.show()
-		plt.savefig("Figures/" + 'smarteye_'+crews_to_process[i_crew]+'.tif',bbox_inches='tight',pad_inches=0)
-		# Instead of plotting individual tables (embed percent text in subplot or in title of subplot?)
-		matplotlib.pyplot.close()
+	# if plot_heatmap_and_qatable:
+	# 	plt.subplots_adjust(wspace=0, hspace=0)
+	# 	plt.style.use("dark_background")
+	# 	# plt.show()
+	# 	plt.savefig("Figures/" + 'smarteye_'+crews_to_process[i_crew]+'.tif',bbox_inches='tight',pad_inches=0)
+	# 	# Instead of plotting individual tables (embed percent text in subplot or in title of subplot?)
+	# 	matplotlib.pyplot.close()
 
 	if exists("Figures"):
 		subprocess.Popen('rm -rf Figures', shell=True)
@@ -289,7 +344,12 @@ for i_crew in range(len(crews_to_process)):
 	np.save("Processing/" + 'smarteye_headHeading_rightseat',headHeading_rightseat)
 	np.save("Processing/" + 'smarteye_timesec_epoch_storage',smarteye_timesec_epoch_storage)
 	np.save("Processing/" + 'event_smarteyeTime_metrics', event_smarteyeTime_metrics)
+	event_smarteyeTimeSeries_metrics.info()
+	event_smarteyeTimeSeries_metrics.to_csv("Processing/" + 'event_smarteyeTimeSeries_metrics.csv')
 	subprocess.call('gsutil -m rsync -r Processing/ "gs://soteria_study_data/"'+ crews_to_process[i_crew] + '"/Processing"', shell=True)
+
+	print('should have saved')
+
 
 	# fig, ax = plt.subplots()
 	# cbar_kws = { 'ticks' : [0, 100] }

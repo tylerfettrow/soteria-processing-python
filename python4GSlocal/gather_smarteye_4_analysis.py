@@ -27,26 +27,30 @@ event_smarteyeGaze_column_values = ['crew', 'seat', 'scenario', 'gaze_variance_c
 # event_smarteyeTime_metrics[:, 0] = int(i_crew + 1)
 event_smarteyeTime_column_values = ['crew', 'seat', 'scenario', 'headHeading_avg_control', 'headHeading_avg_event1', 'headHeading_avg_event2', 'headHeading_std_control', 'headHeading_std_event1', 'headHeading_std_event2', 'pupilD_avg_control', 'pupilD_avg_event1', 'pupilD_avg_event2', 'pupilD_std_control', 'pupilD_std_event1', 'pupilD_std_event2']
 
-
 storage_client = storage.Client(project="soteria-fa59")
 bucket = storage.Bucket(storage_client, "soteria_study_data", user_project="soteria-fa59")
 
 total_eventSmarteye_metric_dataframe = pd.DataFrame()
 for i_crew in range(len(crews_to_process)):
+	this_subject_event_metric_dataframe = pd.DataFrame()
 	crew_dir = crews_to_process[i_crew]
 	print("grabbing results from " + crew_dir)
 	# process_dir_name = crew_dir + "/Processing/"
 
-	f_stream = file_io.FileIO('gs://soteria_study_data/'+ crew_dir + "/Processing/" + 'event_smarteyeGaze_metrics.npy', 'rb')
-	this_eventGaze_metric_data = np.load(io.BytesIO(f_stream.read()))
-	this_eventGaze_metric_dataframe = pd.DataFrame(this_eventGaze_metric_data, columns = event_smarteyeGaze_column_values)
+	# f_stream = file_io.FileIO('gs://soteria_study_data/'+ crew_dir + "/Processing/" + 'event_smarteyeGaze_metrics.npy', 'rb')
+	# this_eventGaze_metric_data = np.load(io.BytesIO(f_stream.read()))
+	# this_eventGaze_metric_dataframe = pd.DataFrame(this_eventGaze_metric_data, columns = event_smarteyeGaze_column_values)
 
+	event_smarteyeGazeTimeSeries_metrics = pd.read_table(('gs://soteria_study_data/' + crew_dir + "/Processing/" +'event_smarteyeGazeTimeSeries_metrics' + '.csv'),delimiter=',')
+	event_smarteyeGazeTimeSeries_df = event_smarteyeGazeTimeSeries_metrics[event_smarteyeGazeTimeSeries_metrics.columns[1:]]
+	# f_stream = file_io.FileIO('gs://soteria_study_data/'+ crew_dir + "/Processing/" + 'event_smarteyeTime_metrics.npy', 'rb')
+	# this_eventTime_metric_data = np.load(io.BytesIO(f_stream.read()))
+	# this_eventTime_metric_dataframe = pd.DataFrame(this_eventTime_metric_data[:,3:], columns = event_smarteyeTime_column_values[3:])
 
-	f_stream = file_io.FileIO('gs://soteria_study_data/'+ crew_dir + "/Processing/" + 'event_smarteyeTime_metrics.npy', 'rb')
-	this_eventTime_metric_data = np.load(io.BytesIO(f_stream.read()))
-	this_eventTime_metric_dataframe = pd.DataFrame(this_eventTime_metric_data[:,3:], columns = event_smarteyeTime_column_values[3:])
+	event_smarteyeTimeSeries_metrics = pd.read_table(('gs://soteria_study_data/' + crew_dir + "/Processing/" +'event_smarteyeTimeSeries_metrics' + '.csv'),delimiter=',')
+	event_smarteyeTimeSeries_df = event_smarteyeTimeSeries_metrics[event_smarteyeTimeSeries_metrics.columns[6:]]
 
-	this_subject_event_metric_dataframe = this_eventGaze_metric_dataframe.join(this_eventTime_metric_dataframe)
+	this_subject_event_metric_dataframe = event_smarteyeGazeTimeSeries_df.join(event_smarteyeTimeSeries_df)
 
 	total_eventSmarteye_metric_dataframe = pd.concat([total_eventSmarteye_metric_dataframe,this_subject_event_metric_dataframe])
 
