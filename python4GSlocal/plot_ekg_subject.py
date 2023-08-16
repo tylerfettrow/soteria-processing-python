@@ -34,7 +34,7 @@ for i_crew in range(len(crews_to_process)):
 		time.sleep(5)
 		os.mkdir("Processing")
 	else:
-		os.mkdir("Processing")	
+		os.mkdir("Processing")
 
 	crew_dir = crews_to_process[i_crew]
 	process_dir_name = crew_dir + '/Processing/'
@@ -64,7 +64,7 @@ for i_crew in range(len(crews_to_process)):
 		for idx in range(0,ekg_timesec_epoch_storage.shape[1]):
 			# print(idx)
 			if this_event_data[0, i_scenario] <= ekg_timesec_epoch_storage[i_scenario, idx]:
-				this_event1_epoch = np.floor((idx - 1)/(number_of_time_epochs/100)) 
+				this_event1_epoch = np.floor((idx - 1)/(number_of_time_epochs/100))
 				break
 		for idx in range(0,ekg_timesec_epoch_storage.shape[1]):
 			# print(idx)

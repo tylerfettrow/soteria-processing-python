@@ -16,29 +16,48 @@ import subprocess
 import time
 from tensorflow.python.lib.io import file_io
 import io
-
+from PIL import Image
 
 crews_to_process = ['Crew_01','Crew_02','Crew_03', 'Crew_04','Crew_05', 'Crew_06', 'Crew_07', 'Crew_08', 'Crew_09', 'Crew_10', 'Crew_11', 'Crew_13']
 # crews_to_process = ['Crew_02']
 # file_types = ["leftseat","rightseat"]
 # scenarios = ["1","2","3","5","6","7"]
 # fig_types = ["engagement", "taskLoad"]
-fig_types = ["engagement"]
+fig_types = ["engagement_spec"]
+fig_types = ["taskLoad_spec"]
 storage_client = storage.Client(project="soteria-fa59")
 bucket = storage.Bucket(storage_client, "soteria_study_data", user_project="soteria-fa59")
 
-
+if exists("Figures"):
+	subprocess.Popen('rm -rf Figures', shell=True)
+	time.sleep(5)
+	os.mkdir("Figures")
+else:
+	os.mkdir("Figures")
+if exists("Processing"):
+	subprocess.Popen('rm -rf Processing', shell=True)
+	time.sleep(5)
+	os.mkdir("Processing")
+else:
+	os.mkdir("Processing")
 
 for i_crew in range(len(crews_to_process)):
 
 	crew_dir = crews_to_process[i_crew]
-	process_dir_name = crew_dir + '/Processing/'
+	figure_dir_name = crew_dir + '/Figures/'
+	this_file_name = 'eeg_' + fig_types[0] + "_" + crew_dir + '.tif'
+	print('eeg_'+fig_types[0]+crew_dir+'.tif')
 
-	f_stream = file_io.FileIO('gs://soteria_study_data/'+ process_dir_name + 'event_vector_scenario.npy', 'rb')
-	this_event_data = np.load(io.BytesIO(f_stream.read()))
+	blob = bucket.blob(figure_dir_name + this_file_name)
+	
+	blob.download_to_filename('Figures/' + this_file_name)
 
-	# rsync within directory for every crew, but just the figure folder
-	# gsutil rsync -d -r gs://mybucket/data my-data
+	# im = Image.open('gs://soteria_study_data/' + figure_dir_name + this_file_name)
+	# im.show()
+
+	input("Press Enter to continue...")
+
+
 	# subprocess.call('gsutil -m rsync -r Figures/ "gs://soteria_study_data/"'+ crews_to_process[i_crew] + '"/Figures"', shell=True)
 
 

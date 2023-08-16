@@ -19,6 +19,19 @@ from tensorflow.python.lib.io import file_io
 import io
 import math
 import statistics
+import matplotlib.colors as colors
+
+def unique(list1):
+ 
+    # initialize a null list
+    unique_list = []
+ 
+    # traverse for all elements
+    for x in list1:
+        # check if exists in unique_list or not
+        if x not in unique_list:
+            unique_list.append(x)
+    return unique_list
 
 def getCrewInt(crewID):
 	if (crewID == 'Crew_01'):
@@ -114,7 +127,7 @@ def variance(a, n, m):
     return sum / (n * n);	
 
 crews_to_process = ['Crew_01','Crew_02','Crew_03', 'Crew_04','Crew_05', 'Crew_06', 'Crew_07', 'Crew_08', 'Crew_09', 'Crew_10', 'Crew_11', 'Crew_13']
-# crews_to_process = ['Crew_01']
+# crews_to_process = ['Crew_02']
 file_types = ["smarteye_leftseat","smarteye_rightseat"]
 scenarios = ["1","2","3","5","6","7"]
 # scenarios = ["1"]
@@ -155,7 +168,6 @@ for i_crew in range(len(crews_to_process)):
 
 	event_smarteyeGaze_metrics = np.zeros((len(scenarios)*2,12))
 	event_smarteyeGaze_metrics[:, 0] = getCrewInt(crews_to_process[i_crew])
-	event_smarteyeGaze_column_values = ['crew', 'seat', 'scenario', 'gaze_variance_control', 'gaze_variance_event1', 'gaze_variance_event2', 'gaze_vel_avg_control', 'gaze_vel_avg_event1', 'gaze_vel_avg_event2', 'gaze_vel_std_control', 'gaze_vel_std_event1', 'gaze_vel_std_event2']
 
 	pupild_leftseat = np.zeros((number_of_epochs,len(scenarios)))
 	pupild_rightseat = np.zeros((number_of_epochs,len(scenarios)))
@@ -192,12 +204,13 @@ for i_crew in range(len(crews_to_process)):
 				blob = bucket.blob(process_dir_name + file_types[i_seat] + '_scenario' + scenarios[i_scenario] + '.csv')
 				if blob.exists():
 					smarteye_data = pd.read_table(('gs://soteria_study_data/' + process_dir_name + file_types[i_seat] + '_scenario' + scenarios[i_scenario] + '.csv'),delimiter=',')
-					
+					print("Processing Crew: " + crews_to_process[i_crew] + " Scenario: "+scenarios[i_scenario])
 					time_vector = np.array(smarteye_data.UserTimeStamp[2:])
 					HeadRotationQ = np.array(smarteye_data.HeadRotationQ[2:])
 					PupilDiameterQ = np.array(smarteye_data.PupilDiameterQ[2:])
 
 					direction_gaze = np.array([smarteye_data.GazeDirectionX[2:], smarteye_data.GazeDirectionY[2:], smarteye_data.GazeDirectionZ[2:]])
+					HeadPosition = np.array([smarteye_data.HeadPosX[2:], smarteye_data.HeadPosY[2:], smarteye_data.HeadPosZ[2:]])
 					magnitude = np.divide(np.sqrt(np.power(direction_gaze[0,:],2) + np.power(direction_gaze[1,:],2) + np.power(direction_gaze[2,:],2)),1)
 					quality_gaze = smarteye_data.GazeDirectionQ[2:]
 					degree_per_sec_vector = angle_diff(time_vector, direction_gaze)
@@ -205,16 +218,22 @@ for i_crew in range(len(crews_to_process)):
 					# for the indices that are sequential (i.e. no gaps in good_indices), calculate rate of gaze movement, and remove values that are greater than 700°/s ( Fuchs, A. F. (1967-08-01). "Saccadic and smooth pursuit eye movements in the monkey". The Journal of Physiology. 191 (3): 609–631. doi:10.1113/jphysiol.1967.sp008271. ISSN 1469-7793. PMC 1365495. PMID 4963872.)
 					# unit circle 1 -> -1
 					# WARNING: not quite what I intended ^^
-					good_indices = np.squeeze(np.where((magnitude!=0) & (quality_gaze*100 >= 6) & (degree_per_sec_vector<=700) & (degree_per_sec_vector!=np.nan) ))
+					good_indices = np.squeeze(np.where((magnitude!=0) & (quality_gaze*100 >= 6) & (degree_per_sec_vector<=700) & (degree_per_sec_vector!=np.nan)))
 
 					# projected_planar_coords = sphere_stereograph(np.squeeze(direction_gaze[:,good_indices]))
+					projected_headPos_coords = sphere_stereograph(np.squeeze(HeadPosition))
 					projected_planar_coords = sphere_stereograph(np.squeeze(direction_gaze))
 					good_project_planar_coords = projected_planar_coords[:,good_indices]
+					good_project_headPos_coords = projected_headPos_coords[:,good_indices]
+					
+					good_project_planar_coords = good_project_planar_coords - good_project_headPos_coords # correct origin of gaze vector for head position
+					good_project_planar_coords[0,:] = good_project_planar_coords[0,:] * -1 # flip the x axis of gaze vector
 
+					good_ObjectIntersection = smarteye_data.ObjectIntersectionName[good_indices]
 					# object_data_good = np.squeeze(object_data[good_indices])
 					# unique_objects = np.unique(object_data_good.tolist())
 
-					total_good_vel_vals = np.squeeze(degree_per_sec_vector[good_indices]) 
+					total_good_vel_vals = np.squeeze(degree_per_sec_vector[good_indices])
 					# exclude the first since that was set to 0 on purpose
 					total_average_gaze_velocity = np.average(total_good_vel_vals[1:])
 					total_std_gaze_velocity = np.std(total_good_vel_vals[1:])
@@ -224,7 +243,7 @@ for i_crew in range(len(crews_to_process)):
 					total_gaze_variance = variance(projected_planar_coords[:,good_indices], 2, total_m)
 
 					headheading_good_indices = np.squeeze(np.where(HeadRotationQ > .6))
-					pupilD_good_indices = np.squeeze(np.where(PupilDiameterQ > .4))				
+					pupilD_good_indices = np.squeeze(np.where(PupilDiameterQ > .4))
 
 					headheading = np.array(smarteye_data.HeadHeading[2:])
 
@@ -280,7 +299,6 @@ for i_crew in range(len(crews_to_process)):
 						event1_good_vel_vals = np.squeeze(degree_per_sec_vector[event1_good_indices])
 						event2_good_vel_vals = np.squeeze(degree_per_sec_vector[event2_good_indices])
 
-
 						if (i_seat == 0):
 							event_smarteyeTime_metrics[i_scenario*2, 3] = statistics.mean(headheadingDeg_rate[headheading_twomin_good_indices])
 							event_smarteyeTime_metrics[i_scenario*2, 4] = statistics.mean(headheadingDeg_rate[headheading_event1_good_indices])
@@ -326,7 +344,7 @@ for i_crew in range(len(crews_to_process)):
 							event_smarteyeGaze_metrics[i_scenario*2+1, 10] = np.nanstd(event1_good_vel_vals[1:])
 							event_smarteyeGaze_metrics[i_scenario*2+1, 11] = np.nanstd(event2_good_vel_vals[1:])
 
-						number_of_epochs_this_scenario = np.floor(time_vector.shape[0]/time_per_epoch_4_analysis)
+						number_of_epochs_this_scenario = np.floor(time_vector[-1]/time_per_epoch_4_analysis)
 						this_smarteyeTimeSeries_np = np.zeros((int(number_of_epochs_this_scenario), 9))
 						this_smarteyeTimeSeries_np[:,0] = getCrewInt(crews_to_process[i_crew])
 						this_smarteyeGazeTimeSeries_np = np.zeros((int(number_of_epochs_this_scenario), 8))
@@ -338,8 +356,20 @@ for i_crew in range(len(crews_to_process)):
 							this_smarteyeTimeSeries_np[:,1] = 1
 							this_smarteyeGazeTimeSeries_np[:,1] = 1
 						this_smarteyeTimeSeries_np[:,2] = i_scenario
+						length_this_data = smarteye_data.shape[0]
 						for this_epoch in range(int(number_of_epochs_this_scenario)):
-							if ((time_vector[10*this_epoch] > this_event_data[0, i_scenario] - 60) & (time_vector[10*this_epoch] < this_event_data[0, i_scenario] + 60)) | ((time_vector[10*this_epoch] > this_event_data[1, i_scenario] - 60) & (time_vector[10*this_epoch] < this_event_data[1, i_scenario] + 60)):
+							this_epoch_indices_start = np.floor(length_this_data/number_of_epochs_this_scenario) * this_epoch
+							this_epoch_indices_end = this_epoch_indices_start + np.floor(length_this_data/number_of_epochs_this_scenario)
+							smarteye_timesec_epoch_storage[i_scenario,this_epoch] = smarteye_data.UserTimeStamp[this_epoch_indices_start]
+							if file_types[i_seat]  == "smarteye_leftseat":
+								pupild_leftseat[this_epoch,i_scenario] = smarteye_data.PupilDiameter[int(this_epoch_indices_start):int(this_epoch_indices_end)].mean()
+								headHeading_leftseat[this_epoch,i_scenario] = smarteye_data.HeadHeading[int(this_epoch_indices_start):int(this_epoch_indices_end)].mean()
+								
+							elif file_types[i_seat]  == "smarteye_rightseat":
+								pupild_rightseat[this_epoch,i_scenario] = smarteye_data.PupilDiameter[int(this_epoch_indices_start):int(this_epoch_indices_end)].mean()
+								headHeading_rightseat[this_epoch,i_scenario] = smarteye_data.HeadHeading[int(this_epoch_indices_start):int(this_epoch_indices_end)].mean()
+
+							if ((time_vector[int(this_epoch_indices_start)] > this_event_data[0, i_scenario] - 60) & (time_vector[int(this_epoch_indices_start)] < this_event_data[0, i_scenario] + 60)) | ((time_vector[int(this_epoch_indices_start)] > this_event_data[1, i_scenario] - 60) & (time_vector[int(this_epoch_indices_start)] < this_event_data[1, i_scenario] + 60)):
 								this_smarteyeTimeSeries_np[this_epoch, 3] = 1
 								this_smarteyeGazeTimeSeries_np[this_epoch, 3] = 1
 							else:
@@ -347,7 +377,7 @@ for i_crew in range(len(crews_to_process)):
 								this_smarteyeGazeTimeSeries_np[this_epoch, 3] = 0
 
 							this_smarteyeGazeTimeSeries_np[this_epoch, 4] = this_epoch
-							this_good_indices = np.squeeze(np.where((good_indices > 10*this_epoch) & (good_indices < 10*this_epoch + 10)))
+							this_good_indices = np.squeeze(np.where((good_indices > this_epoch_indices_start) & (good_indices < this_epoch_indices_end)))
 							if (this_good_indices.size > 1):
 								this_smarteyeGazeTimeSeries_np[this_epoch, 5] = variance(projected_planar_coords[:,this_good_indices], 2, mean(projected_planar_coords[:,this_good_indices],1))
 								this_smarteyeGazeTimeSeries_np[this_epoch, 6] = np.nanmean(np.squeeze(degree_per_sec_vector[this_good_indices]))
@@ -358,10 +388,10 @@ for i_crew in range(len(crews_to_process)):
 								this_smarteyeGazeTimeSeries_np[this_epoch, 7] = np.nan
 
 							this_smarteyeTimeSeries_np[this_epoch, 4] = this_epoch
-							this_smarteyeTimeSeries_np[this_epoch, 5] = np.nanmean(headheadingDeg_rate[10*this_epoch:10*this_epoch + 10])
-							this_smarteyeTimeSeries_np[this_epoch, 6] = np.nanstd(headheadingDeg_rate[10*this_epoch:10*this_epoch + 10])
-							this_smarteyeTimeSeries_np[this_epoch, 7] = np.nanmean(pupilD[10*this_epoch:10*this_epoch + 10])
-							this_smarteyeTimeSeries_np[this_epoch, 8] = np.nanstd(pupilD[10*this_epoch:10*this_epoch + 10])
+							this_smarteyeTimeSeries_np[this_epoch, 5] = np.nanmean(headheadingDeg_rate[int(this_epoch_indices_start):int(this_epoch_indices_end)])
+							this_smarteyeTimeSeries_np[this_epoch, 6] = np.nanstd(headheadingDeg_rate[int(this_epoch_indices_start):int(this_epoch_indices_end)])
+							this_smarteyeTimeSeries_np[this_epoch, 7] = np.nanmean(pupilD[int(this_epoch_indices_start):int(this_epoch_indices_end)])
+							this_smarteyeTimeSeries_np[this_epoch, 8] = np.nanstd(pupilD[int(this_epoch_indices_start):int(this_epoch_indices_end)])
 
 						this_smarteyeGazeTimeSeries_df = pd.DataFrame(this_smarteyeGazeTimeSeries_np)
 						this_smarteyeGazeTimeSeries_df.columns = ['crew', 'seat', 'scenario', 'event_label', 'epoch_index', 'gaze_variance', 'gaze_vel_avg', 'gaze_vel_std']
@@ -398,19 +428,6 @@ for i_crew in range(len(crews_to_process)):
 							event_smarteyeGaze_metrics[i_scenario*2+1, 3] = variance(projected_planar_coords[:,twomin_good_indices], 2, fivemin_mean)
 							event_smarteyeGaze_metrics[i_scenario*2+1, 6] = np.nanmean(fivemin_good_vel_vals[1:])
 							event_smarteyeGaze_metrics[i_scenario*2+1, 9] = np.nanstd(fivemin_good_vel_vals[1:])
-
-					length_this_data = smarteye_data.shape[0]
-					for this_epoch in range(number_of_epochs):
-						this_epoch_indices_start = np.floor(length_this_data/number_of_epochs) * this_epoch
-						this_epoch_indices_end = this_epoch_indices_start + np.floor(length_this_data/number_of_epochs)
-						smarteye_timesec_epoch_storage[i_scenario,this_epoch] = smarteye_data.UserTimeStamp[this_epoch_indices_start]
-						if file_types[i_seat]  == "smarteye_leftseat":
-							pupild_leftseat[this_epoch,i_scenario] = smarteye_data.PupilDiameter[int(this_epoch_indices_start):int(this_epoch_indices_end)].mean()
-							headHeading_leftseat[this_epoch,i_scenario] = smarteye_data.HeadHeading[int(this_epoch_indices_start):int(this_epoch_indices_end)].mean()
-							
-						elif file_types[i_seat]  == "smarteye_rightseat":
-							pupild_rightseat[this_epoch,i_scenario] = smarteye_data.PupilDiameter[int(this_epoch_indices_start):int(this_epoch_indices_end)].mean()
-							headHeading_rightseat[this_epoch,i_scenario] = smarteye_data.HeadHeading[int(this_epoch_indices_start):int(this_epoch_indices_end)].mean()
 					
 					if plot_heatmap_and_qatable:
 						x = smarteye_data.ObjectIntersectionX * 1000 # m to mm?
@@ -427,8 +444,8 @@ for i_crew in range(len(crews_to_process)):
 						y[ y==0 ] = np.nan
 						x = x[~np.isnan(x)]
 						y = y[~np.isnan(y)]
+
 					else:
-						# print("Empty: " + process_dir_name + file_types[i_seat] + '_scenario' + scenarios[i_scenario] + '.csv')
 						pct_usable_matrix[i_scenario,i_seat] = np.nan
 						
 						if plot_heatmap_and_qatable:
@@ -438,37 +455,119 @@ for i_crew in range(len(crews_to_process)):
 							elif file_types[i_seat] == "smarteye_rightseat":
 								rightseat_heatmap[:,:,i_scenario] = empty_heatmap
 
+					unique_ObjectIntersection  = unique(good_ObjectIntersection)
+					# assign colors to each possible object (i.e. make a map for each object)
+					# for 
+					# for each object, determine what indices are labeled with it, then plot those indices with the mapped color
+
+					# for i_obj in range(len(unique_ObjectIntersection)):
+					# 	"Inst Panel" in good_ObjectIntersection
+
+					NUM_COLORS = len(unique_ObjectIntersection)
+					cm = plt.get_cmap('gist_rainbow')
+					cNorm  = colors.Normalize(vmin=0, vmax=NUM_COLORS-1)
+
 					fig1 = plt.figure(1)
+					ax = plt.gca()
+					# color=[cm(1.*i/NUM_COLORS) for i in range(NUM_COLORS)]
+					
 					if (i_seat == 0):
-						plt.scatter(good_project_planar_coords[0,:], good_project_planar_coords[1,:], c = 'c', alpha=.05,marker='.' )
-						plt.text(-.9,-.05,"Gaze Variance="+ str(np.round(total_gaze_variance,3)),c='c', fontsize='large')
-						plt.text(-.9,-.10,"Gaze Velocity=" + str(int(np.round(total_average_gaze_velocity))) + "$\pm$" + str(int(np.round(total_std_gaze_velocity)))+"$^\circ$/sec",c='c', fontsize='large')
-						# plt.text(-.9,-.1,"%D="+str(int(np.round((good_indices.shape[1] / direction_gaze.shape[1])*100)))+"%; " + 
+						for i in range(NUM_COLORS):
+						    indices_this_object = np.squeeze(np.where(good_ObjectIntersection == unique_ObjectIntersection[i]))
+						    col= cm(1.*i/NUM_COLORS)
+						    ax.scatter(good_project_planar_coords[0,indices_this_object], good_project_planar_coords[1,indices_this_object], c = col, alpha=.5,marker='.' )
+						    ax.legend(unique_ObjectIntersection)
+						    ax.set_title('Gaze vector left seat / Capt')
+						# plt.show()
+						# print("should be creating fig")
+						# plt.xlim((-1.5, 1.5))
+						# plt.ylim((-1, 0))
+						fig1.set_size_inches((22, 11))
+						ax = plt.gca()
+						ax.get_xaxis().set_visible(False)
+						ax.axis('off')
+						plt.savefig('Figures/smarteyeGaze_'+scenarios[i_scenario]+'_leftseat.jpg')
+						plt.close()
 					else:
-						plt.scatter(good_project_planar_coords[0,:], good_project_planar_coords[1,:], c = 'r', alpha=.05,marker='.' )
-						plt.text(.65,-.05,"Gaze Variance="+ str(np.round(total_gaze_variance,3)),c='r', fontsize='large')
-						plt.text(.65,-.10,"Gaze Velocity=" + str(int(np.round(total_average_gaze_velocity))) + "$\pm$" + str(int(np.round(total_std_gaze_velocity)))+"$^\circ$/sec",c='r', fontsize='large')
-					del projected_planar_coords
-					del good_indices
-					del direction_gaze
-					del quality_gaze
-					del magnitude
+						for i in range(NUM_COLORS):
+						    indices_this_object = np.squeeze(np.where(good_ObjectIntersection == unique_ObjectIntersection[i]))
+						    col= cm(1.*i/NUM_COLORS)
+						    ax.scatter(good_project_planar_coords[0,indices_this_object], good_project_planar_coords[1,indices_this_object], c = col, alpha=.5,marker='.' )
+						    ax.legend(unique_ObjectIntersection)
+						    ax.set_title('Gaze vector right seat / FO')
+						# plt.show()
+						# plt.xlim((-1.5, 1.5))
+						# plt.ylim((-1, 0))
+						fig1.set_size_inches((22, 11))
+						ax = plt.gca()
+						ax.get_xaxis().set_visible(False)
+						ax.axis('off')
+						plt.savefig('Figures/smarteyeGaze_'+scenarios[i_scenario]+'_rightseat.jpg')
+						plt.close()
+
+					# need to create an array that is preallocated based on all the potential AOIs (get from helper files) x scenario
+					# 
+
+						# plt.text(-.9,-.05,"Gaze Variance="+ str(np.round(total_gaze_variance,3)),c='c', fontsize='large')
+						# plt.text(-.9,-.10,"Gaze Velocity=" + str(int(np.round(total_average_gaze_velocity))) + "$\pm$" + str(int(np.round(total_std_gaze_velocity)))+"$^\circ$/sec",c='c', fontsize='large')
+					# else:
+					# 	plt.scatter(good_project_planar_coords[0,:], good_project_planar_coords[1,:], c = 'r', alpha=.05,marker='.' )
+						# plt.text(.65,-.05,"Gaze Variance="+ str(np.round(total_gaze_variance,3)),c='r', fontsize='large')
+						# plt.text(.65,-.10,"Gaze Velocity=" + str(int(np.round(total_average_gaze_velocity))) + "$\pm$" + str(int(np.round(total_std_gaze_velocity)))+"$^\circ$/sec",c='r', fontsize='large')
+					# del projected_planar_coords
+					# del good_indices
+					# del direction_gaze
+					# del quality_gaze
+					# del magnitude
+				
+					# fig2 = plt.figure(2)
+					# ax = plt.gca()
+					# if (i_seat == 0):
+					# 	for i in range(NUM_COLORS):
+					# 	    indices_this_object = np.squeeze(np.where(good_ObjectIntersection == unique_ObjectIntersection[i]))
+					# 	    col= cm(1.*i/NUM_COLORS)
+					# 	    plt.scatter(good_project_headPos_coords[0,indices_this_object], good_project_headPos_coords[1,indices_this_object], c = col, alpha=.5,marker='.' )
+					# 	    ax.legend(unique_ObjectIntersection)
+					# 	    ax.set_title('Head position left seat / Capt')
+					# 	plt.show()
+					# else:
+					# 	for i in range(NUM_COLORS):
+					# 	    indices_this_object = np.squeeze(np.where(good_ObjectIntersection == unique_ObjectIntersection[i]))
+					# 	    col= cm(1.*i/NUM_COLORS)
+					# 	    plt.scatter(good_project_headPos_coords[0,indices_this_object], good_project_headPos_coords[1,indices_this_object], c = col, alpha=.5,marker='.' )
+					# 	    ax.legend(unique_ObjectIntersection)
+					# 	    ax.set_title('Head position right seat / FO')
+					# 	plt.show()
+					total_gaze_variance_matrix[i_seat, i_scenario] = total_gaze_variance
+					total_gaze_velocity_avg_matrix[i_seat, i_scenario] = total_average_gaze_velocity
+					total_gaze_velocity_std_matrix[i_seat, i_scenario] = total_std_gaze_velocity
+
+					# fig2 = plt.figure(2)
+					# if (i_seat == 0):
+					# 	plt.scatter(good_project_headPos_coords[0,:], good_project_headPos_coords[1,:], c = 'c', alpha=.05,marker='.' )
+					# else:
+					# 	plt.scatter(good_project_headPos_coords[0,:], good_project_headPos_coords[1,:], c = 'r', alpha=.05,marker='.' )
+					
 
 					total_gaze_variance_matrix[i_seat, i_scenario] = total_gaze_variance
 					total_gaze_velocity_avg_matrix[i_seat, i_scenario] = total_average_gaze_velocity
 					total_gaze_velocity_std_matrix[i_seat, i_scenario] = total_std_gaze_velocity
 
-			print("should be creating fig")
-			plt.xlim((-1, 1))
-			plt.ylim((-1, 0))
-			fig1.set_size_inches((22, 11))
-			ax = plt.gca()
-			ax.get_xaxis().set_visible(False)
-			ax.axis('off')
-			plt.savefig('Figures/smarteyeGaze_'+scenarios[i_scenario]+'.jpg')
+
+			
+
+			# print("should be creating fig")
+			# plt.xlim((-1, 1))
+			# plt.ylim((-1, 0))
+			# fig1.set_size_inches((22, 11))
+			# ax = plt.gca()
+			# ax.get_xaxis().set_visible(False)
+			# ax.axis('off')
+			# plt.savefig('Figures/smarteyeGaze_'+scenarios[i_scenario]+'.jpg')
 			# plt.show()
+
 			# matplotlib.pyplot.close()
-			plt.close()
+			# plt.close()
 
 
 	if plot_heatmap_and_qatable:
@@ -487,21 +586,6 @@ for i_crew in range(len(crews_to_process)):
 		matplotlib.pyplot.close()
 		np.save("Processing/" + 'pct_usable_matrix',pct_usable_matrix)
 
-		np.save("Processing/" + 'smarteye_leftseat_heatmap',leftseat_heatmap)
-		np.save("Processing/" + 'smarteye_rightseat_heatmap',rightseat_heatmap)
-		scenarioAvg_leftseat_heatmap = leftseat_heatmap.mean(2)
-		scenarioAvg_rightseat_heatmap = rightseat_heatmap.mean(2) 
-
-		plt.imshow(scenarioAvg_leftseat_heatmap, extent=extent, origin='lower')
-		plt.axis('off')
-		# plt.show()
-		plt.savefig("Figures/" + 'smarteye_leftseat_scenarioAvg.tif',bbox_inches='tight',pad_inches=0)
-		matplotlib.pyplot.close()
-		plt.imshow(scenarioAvg_rightseat_heatmap, extent=extent, origin='lower')
-		plt.axis('off')
-		# plt.show()
-		plt.savefig("Figures/" + 'smarteye_rightseat_scenarioAvg.tif',bbox_inches='tight',pad_inches=0)
-		matplotlib.pyplot.close()
 
 	np.save("Processing/" + 'smarteye_pupild_leftseat',pupild_leftseat)
 	np.save("Processing/" + 'smarteye_pupild_rightseat',pupild_rightseat)
@@ -509,6 +593,8 @@ for i_crew in range(len(crews_to_process)):
 	np.save("Processing/" + 'smarteye_headHeading_rightseat',headHeading_rightseat)
 	np.save("Processing/" + 'smarteye_timesec_epoch_storage',smarteye_timesec_epoch_storage)
 	np.save("Processing/" + 'event_smarteyeTime_metrics', event_smarteyeTime_metrics)
+	event_smarteyeGazeTimeSeries_metrics.info()
+	event_smarteyeGazeTimeSeries_metrics.to_csv("Processing/" + 'event_smarteyeGazeTimeSeries_metrics.csv')
 	event_smarteyeTimeSeries_metrics.info()
 	event_smarteyeTimeSeries_metrics.to_csv("Processing/" + 'event_smarteyeTimeSeries_metrics.csv')
 	subprocess.call('gsutil -m rsync -r Figures/ "gs://soteria_study_data/"'+ crews_to_process[i_crew] + '"/Figures"', shell=True)

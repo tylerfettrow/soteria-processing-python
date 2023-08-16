@@ -94,7 +94,7 @@ for i_crew in range(len(crews_to_process)):
 
 
 		if exists("Processing"):
-			subprocess.Popen('rm -rf Processing', shell=True)
+			os.rmdir('Processing')
 			time.sleep(5)
 			os.mkdir("Processing")
 		else:

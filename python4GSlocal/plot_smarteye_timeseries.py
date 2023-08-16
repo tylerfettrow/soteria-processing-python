@@ -67,7 +67,7 @@ for i_crew in range(len(crews_to_process)):
 		for idx in range(0,smarteye_timesec_epoch_storage.shape[1]):
 			# print(idx)
 			if this_event_data[0, i_scenario] <= smarteye_timesec_epoch_storage[i_scenario, idx]:
-				this_event1_epoch = np.floor((idx - 1)/(number_of_time_epochs/100)) 
+				this_event1_epoch = np.floor((idx - 1)/(number_of_time_epochs/100))
 				break
 		for idx in range(0,smarteye_timesec_epoch_storage.shape[1]):
 			# print(idx)
