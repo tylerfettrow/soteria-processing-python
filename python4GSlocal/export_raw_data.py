@@ -10,6 +10,7 @@ import subprocess
 import time
 from pathlib import Path
 #bucket_name = os.getenv("soteria_study_data")
+import shutil
 
 #print("APPDAT SIMPLE STORAGE SERVICE | Currently connected to Bucket: " + bucket_name)
 

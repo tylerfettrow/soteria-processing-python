@@ -9,8 +9,9 @@ import seaborn as sns; sns.set_theme()
 from google.cloud import storage
 import subprocess
 import time
+import shutil
 
-crews_to_process = ['Crew_01', 'Crew_02', 'Crew_03', 'Crew_04', 'Crew_05', 'Crew_06', 'Crew_07', 'Crew_08', 'Crew_09', 'Crew_10', 'Crew_11', 'Crew_12', 'Crew_13']
+crews_to_process = ['Crew_01', 'Crew_02', 'Crew_03', 'Crew_04', 'Crew_05', 'Crew_06', 'Crew_07', 'Crew_08', 'Crew_09', 'Crew_10', 'Crew_11', 'Crew_13']
 # crews_to_process = ['Crew_01']
 file_types = ["ifd_cockpit", "smarteye_leftseat","smarteye_rightseat", "abm_leftseat","abm_rightseat","emp_acc_leftseat","emp_acc_rightseat","emp_bvp_leftseat","emp_bvp_rightseat","emp_gsr_leftseat","emp_gsr_rightseat","emp_ibi_leftseat","emp_ibi_rightseat","emp_temp_leftseat","emp_temp_rightseat"]
 scenarios = ["1","2","3","5","6","7","8","9"]
@@ -38,14 +39,16 @@ for this_crew in crews_to_process:
 	
 
 	if exists("Processing"):
-		subprocess.Popen('rm -rf Processing', shell=True)
+		# subprocess.Popen('rm -rf Processing', shell=True)
+		shutil.rmtree('Processing', ignore_errors=True)
 		time.sleep(5)
 		os.mkdir("Processing")
 	else:
 		os.mkdir("Processing")
 
 	if exists("Figures"):
-		subprocess.Popen('rm -rf Figures', shell=True)
+		# subprocess.Popen('rm -rf Figures', shell=True)
+		shutil.rmtree('Figures', ignore_errors=True)
 		time.sleep(5)
 		os.mkdir("Figures")
 	else:
@@ -66,6 +69,9 @@ for this_crew in crews_to_process:
 	plt.savefig('Figures/file_existence.jpg')
 	matplotlib.pyplot.close()
 	# os.remove(crew_dir + "/Processing/" + 'file_existence_matrix.npy')
-	np.save("Processing/" + 'file_existence_matrix',file_existence_matrix)
+	# np.save("Processing/" + 'file_existence_matrix',file_existence_matrix)
+	file_existence_matrix_df = pd.DataFrame(file_existence_matrix)
+	file_existence_matrix_df.to_csv("Processing/" + 'file_existence_matrix.csv')
+
 	subprocess.call('gsutil -m rsync -r Processing/ "gs://soteria_study_data/"'+ crew_dir + '"/Processing"', shell=True)
 	subprocess.call('gsutil -m rsync -r Figures/ "gs://soteria_study_data/"'+ crew_dir + '"/Figures"', shell=True)

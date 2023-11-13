@@ -12,6 +12,7 @@ import subprocess
 import time
 import io
 from google.cloud import storage
+import shutil
 crews_to_process = ['Crew_01','Crew_02','Crew_03', 'Crew_04','Crew_05', 'Crew_06', 'Crew_07', 'Crew_08', 'Crew_09', 'Crew_10', 'Crew_11', 'Crew_13']
 
 storage_client = storage.Client(project="soteria-fa59")
@@ -29,7 +30,7 @@ for i_crew in range(len(crews_to_process)):
 	total_eventEEG_metric_dataframe = pd.concat([total_eventEEG_metric_dataframe,event_eegTimeSeries_df])
 
 if exists("Analysis"):
-	os.rmdir('Processing')
+	shutil.rmtree('Analysis', ignore_errors=True)
 	time.sleep(5)
 	os.mkdir("Analysis")
 else:
@@ -37,7 +38,6 @@ else:
 
 total_eventEEG_metric_dataframe.to_csv("Analysis/" + 'total_eventEEG_metric_dataframe.csv')
 subprocess.call('gsutil -m rsync -r Analysis/ "gs://soteria_study_data/"'+'"Analysis"', shell=True)
-
 
 colors = sns.color_palette('tab10',2)
 colors_array = np.array(colors)

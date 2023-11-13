@@ -10,7 +10,7 @@ from google.cloud import storage
 from tensorflow.python.lib.io import file_io
 import io
 
-crews_to_process = ['Crew_01', 'Crew_02', 'Crew_03', 'Crew_04','Crew_05', 'Crew_06','Crew_05', 'Crew_06', 'Crew_07', 'Crew_08', 'Crew_09', 'Crew_10', 'Crew_11', 'Crew_12', 'Crew_13']
+crews_to_process = ['Crew_01', 'Crew_02', 'Crew_03', 'Crew_04','Crew_05', 'Crew_06', 'Crew_07', 'Crew_08', 'Crew_09', 'Crew_10', 'Crew_11', 'Crew_12', 'Crew_13']
 crews_to_process = ['Crew_01']
 # crews_to_process = ['Crew_01', 'Crew_02', 'Crew_03', 'Crew_04','Crew_05', 'Crew_06']
 scenarios = ["1","2","3","5","6","7"]

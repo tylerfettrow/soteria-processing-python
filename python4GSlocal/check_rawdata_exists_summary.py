@@ -8,10 +8,10 @@ import matplotlib.pyplot as plt
 import seaborn as sns; sns.set_theme()
 import io
 import numpy as np
-from tensorflow.python.lib.io import file_io
+# from tensorflow.python.lib.io import file_io
 import subprocess
 import time
-
+import shutil
 
 crews_to_process = ['Crew_01', 'Crew_02', 'Crew_03', 'Crew_04', 'Crew_05', 'Crew_06', 'Crew_07', 'Crew_08', 'Crew_09', 'Crew_10', 'Crew_11', 'Crew_13']
 # crews_to_process = ['Crew_01']
@@ -24,9 +24,11 @@ total_file_existence_matrix = np.zeros((len(file_types),len(scenarios),len(crews
 #print(total_file_existence_matrix.shape)
 for i_crew in range(len(crews_to_process)):
 	crew_dir = crews_to_process[i_crew]
-	f_stream = file_io.FileIO('gs://soteria_study_data/'+ crew_dir + '/Processing/file_existence_matrix.npy', 'rb')
-	this_matrix = np.load(io.BytesIO(f_stream.read()))
-	total_file_existence_matrix[:,:,i_crew] = this_matrix
+	# f_stream = file_io.FileIO('gs://soteria_study_data/'+ crew_dir + '/Processing/file_existence_matrix.npy', 'rb')
+	# this_matrix = np.load(io.BytesIO(f_stream.read()))
+	this_matrix = pd.read_table(('gs://soteria_study_data/'+ crew_dir + '/Processing/file_existence_matrix.csv'),delimiter=',')
+	this_matrix = np.array(this_matrix)
+	total_file_existence_matrix[:,:,i_crew] = this_matrix[:,1:]
 	
 
 #print(total_file_existence_matrix[:,:,0])
@@ -39,7 +41,8 @@ total_file_existence_matrix_squeezed_averaged = np.multiply(np.divide(total_file
 
 
 if exists("Figures"):
-	subprocess.Popen('rm -rf Figures', shell=True)
+	# subprocess.Popen('rm -rf Figures', shell=True)
+	shutil.rmtree('Figures', ignore_errors=True)
 	time.sleep(5)
 	os.mkdir("Figures")
 else:
@@ -57,7 +60,24 @@ ax.xaxis.set_label_position('top')
 ax.xaxis.tick_top()
 
 fig.tight_layout()
-#plt.show()
+# plt.show()
 plt.savefig("Figures/" + 'total_file_existence.jpg')
 matplotlib.pyplot.close()
+
+fig, ax = plt.subplots()
+cbar_kws = { 'ticks' : [0, 100] }
+ax = sns.heatmap(np.rint(total_file_existence_matrix_squeezed_averaged), linewidths=.5,cbar = False, cbar_kws = cbar_kws,annot=True,fmt='.3g')
+# ax.set_xticklabels(scenarios)
+# ax.set_yticklabels(file_types)
+# ax.set(xlabel='scenarios', ylabel='devices')
+plt.axis('off')
+plt.yticks(rotation=0)
+# ax.xaxis.set_label_position('top')
+ax.xaxis.tick_top()
+
+fig.tight_layout()
+# plt.show()
+plt.savefig("Figures/" + 'total_file_existence_nolabels.jpg')
+matplotlib.pyplot.close()
+
 subprocess.call('gsutil -m rsync -r Figures/ "gs://soteria_study_data/Figures"', shell=True)

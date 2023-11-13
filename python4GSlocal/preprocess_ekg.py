@@ -16,9 +16,19 @@ from numpy import linalg as la
 from os.path import exists
 import subprocess
 import time
-from tensorflow.python.lib.io import file_io
+# from tensorflow.python.lib.io import file_io
 import io
 import matplotlib.pyplot as plt
+
+########### SETTINGS ##################
+crews_to_process = ['Crew_01','Crew_02','Crew_03', 'Crew_04','Crew_05', 'Crew_06', 'Crew_07', 'Crew_08', 'Crew_09', 'Crew_10', 'Crew_11', 'Crew_13']
+# crews_to_process = ['Crew_02']
+file_types = ["abm_leftseat","abm_rightseat"]
+scenarios = ["1","2","3","5","6","7"]
+number_of_epochs = 250
+time_per_epoch_4_analysis = 10   # seconds
+plot_qa_figs = 0
+#######################################
 
 def getCrewInt(crewID):
 	if (crewID == 'Crew_01'):
@@ -58,18 +68,8 @@ def update(val):
 slider_color = 'White'				 
 
 
-crews_to_process = ['Crew_01','Crew_02','Crew_03', 'Crew_04','Crew_05', 'Crew_06', 'Crew_07', 'Crew_08', 'Crew_09', 'Crew_10', 'Crew_11', 'Crew_13']
-# crews_to_process = ['Crew_02']
-file_types = ["abm_leftseat","abm_rightseat"]
-scenarios = ["1","2","3","5","6","7"]
 storage_client = storage.Client(project="soteria-fa59")
 bucket = storage.Bucket(storage_client, "soteria_study_data", user_project="soteria-fa59")
-
-number_of_epochs = 250
-
-time_per_epoch_4_analysis = 10   # seconds
-
-plot_qa_figs = 0
 
 
 for i_crew in range(len(crews_to_process)):
@@ -87,11 +87,6 @@ for i_crew in range(len(crews_to_process)):
 		os.mkdir("Processing")	
 	
 	event_ekgTimeSeries_metrics = pd.DataFrame()
-	pct_usable_matrix = np.zeros((len(scenarios),len(file_types)))
-	ekg_peaks_bpm_leftseat = np.zeros((number_of_epochs,len(scenarios)))
-	ekg_peaks_bpm_rightseat = np.zeros((number_of_epochs,len(scenarios)))
-	# ekg_peaks_rightseat = np.zeros((number_of_bands,len(scenarios)))
-	ekg_timesec_epoch_storage = np.zeros((len(scenarios),number_of_epochs))
 	crew_dir = crews_to_process[i_crew]
 	for i_scenario in range(len(scenarios)):
 		for i_seat in range(len(file_types)):
@@ -103,7 +98,7 @@ for i_crew in range(len(crews_to_process)):
 				abm_data = pd.read_table(('gs://soteria_study_data/' + process_dir_name + file_types[i_seat] + '_scenario' + scenarios[i_scenario] + '.csv'),delimiter=',')
 				time_vector = np.array(abm_data.UserTimeStamp[2:])
 
-				f_stream = file_io.FileIO('gs://soteria_study_data/'+ process_dir_name + 'event_vector_scenario.npy', 'rb')
+				f_stream = io.FileIO('gs://soteria_study_data/'+ process_dir_name + 'event_vector_scenario.npy', 'rb')
 				this_event_data = np.load(io.BytesIO(f_stream.read()))
 
 				number_of_epochs_this_scenario = np.floor(time_vector[-1]/time_per_epoch_4_analysis)
@@ -165,9 +160,5 @@ for i_crew in range(len(crews_to_process)):
 				this_ekgTimeSeries_df.columns = ['crew', 'seat', 'scenario', 'event_label', 'epoch_index', 'beats_per_min', 'hr_var']
 				event_ekgTimeSeries_metrics = pd.concat([event_ekgTimeSeries_metrics,this_ekgTimeSeries_df])
 
-	# np.save("Processing/" + 'ekg_bpm_leftseat',ekg_peaks_bpm_leftseat)
-	# np.save("Processing/" + 'ekg_timesec_epoch_storage', ekg_timesec_epoch_storage)
-	# np.save("Processing/" + 'ekg_bpm_rightseat',ekg_peaks_bpm_rightseat)
 	event_ekgTimeSeries_metrics.to_csv("Processing/" + 'event_ekgTimeSeries_metrics.csv')
 	subprocess.call('gsutil -m rsync -r Processing/ "gs://soteria_study_data/"'+ crews_to_process[i_crew] + '"/Processing"', shell=True)			
-	# np.save(crew_dir + "/Processing/" + 'ekg_timesec_band_storage_leftseat', ekg_timesec_band_storage)

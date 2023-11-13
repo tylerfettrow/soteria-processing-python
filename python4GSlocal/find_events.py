@@ -7,11 +7,13 @@ import math
 import subprocess
 import time
 from google.cloud import storage
+import shutil
 
+########### SETTINGS ##################
 crews_to_process = ['Crew_01', 'Crew_02', 'Crew_03', 'Crew_04', 'Crew_05', 'Crew_06', 'Crew_07', 'Crew_08', 'Crew_09', 'Crew_10', 'Crew_11', 'Crew_12', 'Crew_13']
-crews_to_process = ['Crew_01']
+# crews_to_process = ['Crew_01']
 scenarios = ["1","2","3","5","6","7"]
-path_to_project = 'C:/Users/tfettrow/Box/SOTERIA'
+#######################################
 
 storage_client = storage.Client(project="soteria-fa59")
 bucket = storage.Bucket(storage_client, "soteria_study_data", user_project="soteria-fa59")
@@ -94,19 +96,14 @@ for i_crew in range(len(crews_to_process)):
 
 
 		if exists("Processing"):
-			os.rmdir('Processing')
+			shutil.rmtree('Processing', ignore_errors=True)
 			time.sleep(5)
 			os.mkdir("Processing")
 		else:
 			os.mkdir("Processing")
 
-	DF = pd.DataFrame(event_vector_timesec)
-
-	# save the dataframe as a csv file
-	# DF.to_csv("Processing/" +"event_vector_scenario.csv")
-
-	np.save("Processing/" + 'event_vector_scenario',event_vector_timesec)
-	# event_vector_timesec.to_csv("Processing/" + 'event_vector_scenario.csv')
+	event_vector_timesec_df = pd.DataFrame(event_vector_timesec)
+	event_vector_timesec_df.to_csv("Processing/" + 'event_vector_scenario.csv')
 	subprocess.call('gsutil -m rsync -r Processing/ "gs://soteria_study_data/"'+ crews_to_process[i_crew] + '"/Processing"', shell=True)
 		
 

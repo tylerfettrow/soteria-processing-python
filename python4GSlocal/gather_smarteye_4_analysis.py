@@ -10,10 +10,10 @@ import seaborn as sns; sns.set_theme()
 import matplotlib.gridspec as gridspec
 import subprocess
 import time
-from tensorflow.python.lib.io import file_io
+# from tensorflow.python.lib.io import file_io
 import io
 from google.cloud import storage
-
+import shutil
 crews_to_process = ['Crew_01','Crew_02','Crew_03', 'Crew_04','Crew_05', 'Crew_06', 'Crew_07', 'Crew_08', 'Crew_09', 'Crew_10', 'Crew_11', 'Crew_13']
 
 storage_client = storage.Client(project="soteria-fa59")
@@ -36,7 +36,7 @@ for i_crew in range(len(crews_to_process)):
 	total_eventSmarteye_metric_dataframe = pd.concat([total_eventSmarteye_metric_dataframe,this_subject_event_metric_dataframe])
 
 if exists("Analysis"):
-	subprocess.Popen('rm -rf Analysis', shell=True)
+	shutil.rmtree('Analysis', ignore_errors=True)
 	time.sleep(5)
 	os.mkdir("Analysis")
 else:

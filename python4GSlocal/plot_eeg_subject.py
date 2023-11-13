@@ -14,8 +14,8 @@ from numpy import linalg as la
 from os.path import exists
 import subprocess
 import time
-from tensorflow.python.lib.io import file_io
 import io
+import shutil
 
 def getCrewInt(crewID):
 	if (crewID == 'Crew_01'):
@@ -47,14 +47,13 @@ def getCrewInt(crewID):
 	return b
 
 crews_to_process = ['Crew_01','Crew_02','Crew_03', 'Crew_04','Crew_05', 'Crew_06', 'Crew_07', 'Crew_08', 'Crew_09', 'Crew_10', 'Crew_11', 'Crew_13']
-# crews_to_process = ['Crew_02']
+crews_to_process = ['Crew_01']
 electrodes = [ 'F3','Fz', 'F4', 'C3','Cz', 'C4', 'P3','POz', 'P4']
 file_types = ["leftseat","rightseat"]
 scenarios = ["1","2","3","5","6","7"]
 storage_client = storage.Client(project="soteria-fa59")
 bucket = storage.Bucket(storage_client, "soteria_study_data", user_project="soteria-fa59")
 
-plot_individual = 0
 plot_engagement = 1
 plot_workload = 0
 
@@ -72,13 +71,15 @@ plot_workload = 0
 for i_crew in range(len(crews_to_process)):
 
 	if exists("Figures"):
-		subprocess.Popen('rm -rf Figures', shell=True)
+		# subprocess.Popen('rm -rf Figures', shell=True)
+		shutil.rmtree('Figures', ignore_errors=True)
 		time.sleep(5)
 		os.mkdir("Figures")
 	else:
 		os.mkdir("Figures")
 	if exists("Processing"):
-		subprocess.Popen('rm -rf Processing', shell=True)
+		# subprocess.Popen('rm -rf Processing', shell=True)
+		shutil.rmtree('Processing', ignore_errors=True)
 		time.sleep(5)
 		os.mkdir("Processing")
 	else:
@@ -87,16 +88,22 @@ for i_crew in range(len(crews_to_process)):
 	crew_dir = crews_to_process[i_crew]
 	process_dir_name = crew_dir + '/Processing/'
 
-	f_stream = file_io.FileIO('gs://soteria_study_data/'+ process_dir_name + 'event_vector_scenario.npy', 'rb')
-	this_event_data = np.load(io.BytesIO(f_stream.read()))
+	# f_stream = file_io.FileIO('gs://soteria_study_data/'+ process_dir_name + 'event_vector_scenario.npy', 'rb')
+	# this_event_data = np.load(io.BytesIO(f_stream.read()))
+	this_event_data = pd.read_table(('gs://soteria_study_data/' + process_dir_name + 'event_vector_scenario.csv'),delimiter=',')
+	this_event_data = np.array(this_event_data)
+	this_event_data = this_event_data[:,1:]
 
 	event_eegTimeSeries_metrics = pd.read_table(('gs://soteria_study_data/' + process_dir_name + 'event_eegTimeSeries_metrics.csv'),delimiter=',')				
 
 	for i_seat in range(len(file_types)):
 		if file_types[i_seat] == "leftseat":			
 			########## left seat #######################
-			f_stream = file_io.FileIO('gs://soteria_study_data/'+ process_dir_name + 'eeg_freqSpec_band_storage_leftseat.npy', 'rb')
-			eeg_freqSpec_band_storage = np.load(io.BytesIO(f_stream.read()))
+			# f_stream = file_io.FileIO('gs://soteria_study_data/'+ process_dir_name + 'eeg_freqSpec_band_storage_leftseat.npy', 'rb')
+			# eeg_freqSpec_band_storage = np.load(io.BytesIO(f_stream.read()))
+			eeg_freqSpec_band_storage = pd.read_table(('gs://soteria_study_data/' + process_dir_name + 'eeg_freqSpec_band_storage_leftseat.csv'),delimiter=',')
+			eeg_freqSpec_band_storage = np.array(eeg_freqSpec_band_storage)
+			eeg_freqSpec_band_storage = eeg_freqSpec_band_storage[:,1:]
 
 			# 5 (freq bands) x 9 (electrodes) x 6 (scenarios) x 200 (epochs)
 			# delta # theta # alpha # beta # gamma
@@ -161,8 +168,11 @@ for i_crew in range(len(crews_to_process)):
 
 		elif file_types[i_seat] == "rightseat":
 			########## right seat #######################
-			f_stream = file_io.FileIO('gs://soteria_study_data/'+ process_dir_name + 'eeg_freqSpec_band_storage_rightseat.npy', 'rb')
-			eeg_freqSpec_band_storage = np.load(io.BytesIO(f_stream.read()))
+			# f_stream = file_io.FileIO('gs://soteria_study_data/'+ process_dir_name + 'eeg_freqSpec_band_storage_rightseat.npy', 'rb')
+			# eeg_freqSpec_band_storage = np.load(io.BytesIO(f_stream.read()))
+			eeg_freqSpec_band_storage = pd.read_table(('gs://soteria_study_data/' + process_dir_name + 'eeg_freqSpec_band_storage_leftseat.csv'),delimiter=',')
+			eeg_freqSpec_band_storage = np.array(eeg_freqSpec_band_storage)
+			eeg_freqSpec_band_storage = eeg_freqSpec_band_storage[:,1:]
 			# eeg_freq_band_storage = np.load(crew_dir + "/Processing/" + 'eeg_freq_band_storage_rightseat.npy')
 
 			if crews_to_process[i_crew] == 'Crew_01':

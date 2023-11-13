@@ -16,9 +16,8 @@ from os.path import exists
 import subprocess
 import time
 import matplotlib.pyplot as plt
-import pywt
-from tensorflow.python.lib.io import file_io
 import io
+import shutil
 
 def getCrewInt(crewID):
 	if (crewID == 'Crew_01'):
@@ -112,10 +111,10 @@ def update(val):
     fig.canvas.draw_idle()
 slider_color = 'White'
 
-
+########### SETTINGS ##################
 # crews_to_process = ['Crew_01','Crew_02','Crew_03', 'Crew_04','Crew_05', 'Crew_06', 'Crew_07', 'Crew_08', 'Crew_09', 'Crew_10', 'Crew_11', 'Crew_13']
 # crews_to_process = ['Crew_04','Crew_05', 'Crew_06', 'Crew_07', 'Crew_08', 'Crew_09', 'Crew_10', 'Crew_11', 'Crew_13']
-# crews_to_process = ['Crew_02']
+crews_to_process = ['Crew_01']
 file_types = ["abm_leftseat","abm_rightseat"]
 scenarios = ["1","2","3","5","6","7"]
 storage_client = storage.Client(project="soteria-fa59")
@@ -128,6 +127,8 @@ plot_individual = 1
 plot_workload = 0
 # plot_timeseries_psd = 1
 number_of_epochs = 1000
+#######################################
+
 
 for i_crew in range(len(crews_to_process)):
 	event_eegTimeSeries_metrics = pd.DataFrame()
@@ -140,20 +141,25 @@ for i_crew in range(len(crews_to_process)):
 	process_dir_name = crew_dir + '/Processing/'
 
 	if exists("Figures"):
-		subprocess.Popen('rm -rf Figures', shell=True)
+		# subprocess.Popen('rm -rf Figures', shell=True)
+		shutil.rmtree('Figures', ignore_errors=True)
 		time.sleep(5)
 		os.mkdir("Figures")
 	else:
 		os.mkdir("Figures")
 	if exists("Processing"):
-		subprocess.Popen('rm -rf Processing', shell=True)
+		# subprocess.Popen('rm -rf Processing', shell=True)
+		shutil.rmtree('Processing', ignore_errors=True)
 		time.sleep(5)
 		os.mkdir("Processing")
 	else:
 		os.mkdir("Processing")	
 
-	f_stream = file_io.FileIO('gs://soteria_study_data/'+ process_dir_name + 'event_vector_scenario.npy', 'rb')
-	this_event_data = np.load(io.BytesIO(f_stream.read()))
+	# f_stream = file_io.FileIO('gs://soteria_study_data/'+ process_dir_name + 'event_vector_scenario.npy', 'rb')
+	# this_event_data = np.load(io.BytesIO(f_stream.read()))
+	this_event_data = pd.read_table(('gs://soteria_study_data/' + process_dir_name + 'event_vector_scenario.csv'),delimiter=',')
+	this_event_data = np.array(this_event_data)
+	this_event_data = this_event_data[:,1:]
 
 	for i_seat in range(len(file_types)):
 		for i_scenario in range(len(scenarios)):	
@@ -221,9 +227,13 @@ for i_crew in range(len(crews_to_process)):
 				eeg_freqSpec_band_storage[5,:,0:Sxx.shape[2],i_scenario] = Sxx[:,30:44, :].mean(1)		# gamma
 
 				if file_types[i_seat] == "abm_leftseat":
-					np.save("Processing/" + 'eeg_freqSpec_band_storage_leftseat', eeg_freqSpec_band_storage)
+					eeg_freqSpec_band_storage_df = pd.DataFrame(eeg_freqSpec_band_storage)
+					eeg_freqSpec_band_storage_df.to_csv("Processing/" + 'eeg_freqSpec_band_storage_leftseat.csv')
+					# np.save("Processing/" + 'eeg_freqSpec_band_storage_leftseat', eeg_freqSpec_band_storage)
 				elif file_types[i_seat] == "abm_rightseat":
-					np.save("Processing/" + 'eeg_freqSpec_band_storage_rightseat', eeg_freqSpec_band_storage)
+					eeg_freqSpec_band_storage_df = pd.DataFrame(eeg_freqSpec_band_storage)
+					eeg_freqSpec_band_storage_df.to_csv("Processing/" + 'eeg_freqSpec_band_storage_rightseat.csv')
+					# np.save("Processing/" + 'eeg_freqSpec_band_storage_rightseat', eeg_freqSpec_band_storage)
 
 				for this_epoch in range(eeg_freqSpec_band_storage.shape[2]):	
 					if np.all(np.isnan(eeg_freqSpec_band_storage[:,:,this_epoch,i_scenario])):
@@ -320,181 +330,181 @@ for i_crew in range(len(crews_to_process)):
 				this_eegTimeSeries_df.columns = ['crew', 'seat', 'scenario', 'event_label', 'epoch_index', 'taskLoad_index_spec', 'engagement_index_spec']
 				event_eegTimeSeries_metrics = pd.concat([event_eegTimeSeries_metrics,this_eegTimeSeries_df])
 
-		if plot_individual:
-			this_epoch_bandpower_ratio_spec[np.isnan(this_epoch_bandpower_ratio_spec)] = 0
+				if plot_individual:
+					this_epoch_bandpower_ratio_spec[np.isnan(this_epoch_bandpower_ratio_spec)] = 0
 
-			# filtering the bandpower sig
-			# b, a = signal.ellip(4, 0.01, 120, 0.125)
-			b, a = signal.butter(8, 0.125)
-			# filtered_this_epoch_bandpower_ratio_spec = this_epoch_bandpower_ratio_spec
-			filtered_this_epoch_bandpower_ratio_spec = signal.filtfilt(b, a, this_epoch_bandpower_ratio_spec, method="gust")
+					# filtering the bandpower sig
+					# b, a = signal.ellip(4, 0.01, 120, 0.125)
+					b, a = signal.butter(8, 0.125)
+					# filtered_this_epoch_bandpower_ratio_spec = this_epoch_bandpower_ratio_spec
+					filtered_this_epoch_bandpower_ratio_spec = signal.filtfilt(b, a, this_epoch_bandpower_ratio_spec, method="gust")
 
-			fig, axs = plt.subplots(3, 3)
-			fig.suptitle(crews_to_process[i_crew]+file_types[i_seat]+scenarios[i_scenario])
-			
-			std_bandpower = filtered_this_epoch_bandpower_ratio_spec.std(axis=0)
+					fig, axs = plt.subplots(3, 3)
+					fig.suptitle(crews_to_process[i_crew]+file_types[i_seat]+scenarios[i_scenario])
+					
+					std_bandpower = filtered_this_epoch_bandpower_ratio_spec.std(axis=0)
 
-			if plot_workload:
-				rta_vector = rta_vector[~pd.isna(rta_vector)]
-				if (crews_to_process[i_crew] == 'Crew_12') & (scenarios[i_scenario] == '5'):
-					# check to see if the number of rta inputs match the eeg_timesec_storage
-					expected_length_of_data = eeg_timesec_epoch_storage[3,-1]/60
-					if len(rta_vector) != int(np.floor(expected_length_of_data)):
-						print('WARNING: RTA workload does not match trial length')
-						print('rta = '+ str(len(rta_vector)) + ' eeg: ' + str(int(np.floor(expected_length_of_data))))
-				elif scenarios[i_scenario] == '2':
-					expected_length_of_data = eeg_timesec_epoch_storage[1,-1]/60
-					if len(rta_vector) != int(np.floor(expected_length_of_data)):
-						print('WARNING: RTA workload does not match trial length')
-						print('rta = '+ str(len(rta_vector)) + ' eeg: ' + str(int(np.floor(expected_length_of_data))))
-					rta_vector_timewarped = np.repeat(rta_vector,int(np.floor(number_of_time_epochs/len(rta_vector))))
-					if len(rta_vector_timewarped) < number_of_time_epochs:
-						diff = number_of_time_epochs - len(rta_vector_timewarped)
-						rta_vector_timewarped = np.append(rta_vector_timewarped,np.ones(diff)*rta_vector_timewarped[-1])
-					axs[0,0].plot(x_axis_vector, rta_vector_timewarped * 10, linewidth=1)
-					axs[0,1].plot(x_axis_vector, rta_vector_timewarped * 10, linewidth=1)
-					axs[0,2].plot(x_axis_vector, rta_vector_timewarped * 10, linewidth=1)
-					axs[1,0].plot(x_axis_vector, rta_vector_timewarped * 10, linewidth=1)
-					axs[1,1].plot(x_axis_vector, rta_vector_timewarped * 10, linewidth=1)
-					axs[1,2].plot(x_axis_vector, rta_vector_timewarped * 10, linewidth=1)
-					axs[2,0].plot(x_axis_vector, rta_vector_timewarped * 10, linewidth=1)
-					axs[2,1].plot(x_axis_vector, rta_vector_timewarped * 10, linewidth=1)
-					axs[2,2].plot(x_axis_vector, rta_vector_timewarped * 10, linewidth=1)
+					if plot_workload:
+						rta_vector = rta_vector[~pd.isna(rta_vector)]
+						if (crews_to_process[i_crew] == 'Crew_12') & (scenarios[i_scenario] == '5'):
+							# check to see if the number of rta inputs match the eeg_timesec_storage
+							expected_length_of_data = eeg_timesec_epoch_storage[3,-1]/60
+							if len(rta_vector) != int(np.floor(expected_length_of_data)):
+								print('WARNING: RTA workload does not match trial length')
+								print('rta = '+ str(len(rta_vector)) + ' eeg: ' + str(int(np.floor(expected_length_of_data))))
+						elif scenarios[i_scenario] == '2':
+							expected_length_of_data = eeg_timesec_epoch_storage[1,-1]/60
+							if len(rta_vector) != int(np.floor(expected_length_of_data)):
+								print('WARNING: RTA workload does not match trial length')
+								print('rta = '+ str(len(rta_vector)) + ' eeg: ' + str(int(np.floor(expected_length_of_data))))
+							rta_vector_timewarped = np.repeat(rta_vector,int(np.floor(number_of_time_epochs/len(rta_vector))))
+							if len(rta_vector_timewarped) < number_of_time_epochs:
+								diff = number_of_time_epochs - len(rta_vector_timewarped)
+								rta_vector_timewarped = np.append(rta_vector_timewarped,np.ones(diff)*rta_vector_timewarped[-1])
+							axs[0,0].plot(x_axis_vector, rta_vector_timewarped * 10, linewidth=1)
+							axs[0,1].plot(x_axis_vector, rta_vector_timewarped * 10, linewidth=1)
+							axs[0,2].plot(x_axis_vector, rta_vector_timewarped * 10, linewidth=1)
+							axs[1,0].plot(x_axis_vector, rta_vector_timewarped * 10, linewidth=1)
+							axs[1,1].plot(x_axis_vector, rta_vector_timewarped * 10, linewidth=1)
+							axs[1,2].plot(x_axis_vector, rta_vector_timewarped * 10, linewidth=1)
+							axs[2,0].plot(x_axis_vector, rta_vector_timewarped * 10, linewidth=1)
+							axs[2,1].plot(x_axis_vector, rta_vector_timewarped * 10, linewidth=1)
+							axs[2,2].plot(x_axis_vector, rta_vector_timewarped * 10, linewidth=1)
 
-			axs[0, 0].plot(x_axis_vector_spec, filtered_this_epoch_bandpower_ratio_spec[:,0,:].T * 100, linewidth=1)
-			# axs[0, 0].plot(x_axis_vector_spec, std_bandpower[0,:].T * 100 , linewidth=2)
-			axs[0, 0].axvline(x = this_event1_epoch, ymin = 0, ymax = 100, color = 'gray',linestyle='--', label='_Hidden label')
-			axs[0, 0].axvline(x = this_event2_epoch, ymin = 0, ymax = 100, color = 'gray',linestyle='--', label='_Hidden label')
-			axs[0, 0].set_ylim([0, 100])
-			if electrode_vector[i_scenario,1] == 2:
-				axs[0, 0].set_title('F3', color='black')
-			elif electrode_vector[i_scenario,1] == 1:
-				axs[0, 0].set_title('F3', color='blue')
-			elif electrode_vector[i_scenario,1] == 0:
-				axs[0, 0].set_title('F3', color='red')
+					axs[0, 0].plot(x_axis_vector_spec, filtered_this_epoch_bandpower_ratio_spec[:,0,:].T * 100, linewidth=1)
+					# axs[0, 0].plot(x_axis_vector_spec, std_bandpower[0,:].T * 100 , linewidth=2)
+					axs[0, 0].axvline(x = this_event1_epoch, ymin = 0, ymax = 100, color = 'gray',linestyle='--', label='_Hidden label')
+					axs[0, 0].axvline(x = this_event2_epoch, ymin = 0, ymax = 100, color = 'gray',linestyle='--', label='_Hidden label')
+					axs[0, 0].set_ylim([0, 100])
+					if electrode_vector[i_scenario,1] == 2:
+						axs[0, 0].set_title('F3', color='black')
+					elif electrode_vector[i_scenario,1] == 1:
+						axs[0, 0].set_title('F3', color='blue')
+					elif electrode_vector[i_scenario,1] == 0:
+						axs[0, 0].set_title('F3', color='red')
 
-			axs[0, 1].axvline(x = this_event1_epoch, ymin = 0, ymax = 100, color = 'gray',linestyle='--', label='_Hidden label')
-			axs[0, 1].axvline(x = this_event2_epoch, ymin = 0, ymax = 100, color = 'gray',linestyle='--', label='_Hidden label')
-			axs[0, 1].plot(x_axis_vector_spec, filtered_this_epoch_bandpower_ratio_spec[:,1,:].T * 100, linewidth=1)
-			# axs[0, 1].plot(x_axis_vector_spec, std_bandpower[1,:].T * 100 , linewidth=2)
-			axs[0, 1].set_ylim([0, 100])
-			if electrode_vector[i_scenario,1] == 2:
-				axs[0, 1].set_title('Fz', color='black')
-			elif electrode_vector[i_scenario,1] == 1:
-				axs[0, 1].set_title('Fz', color='blue')
-			elif electrode_vector[i_scenario,1] == 0:
-				axs[0, 1].set_title('Fz', color='red')
+					axs[0, 1].axvline(x = this_event1_epoch, ymin = 0, ymax = 100, color = 'gray',linestyle='--', label='_Hidden label')
+					axs[0, 1].axvline(x = this_event2_epoch, ymin = 0, ymax = 100, color = 'gray',linestyle='--', label='_Hidden label')
+					axs[0, 1].plot(x_axis_vector_spec, filtered_this_epoch_bandpower_ratio_spec[:,1,:].T * 100, linewidth=1)
+					# axs[0, 1].plot(x_axis_vector_spec, std_bandpower[1,:].T * 100 , linewidth=2)
+					axs[0, 1].set_ylim([0, 100])
+					if electrode_vector[i_scenario,1] == 2:
+						axs[0, 1].set_title('Fz', color='black')
+					elif electrode_vector[i_scenario,1] == 1:
+						axs[0, 1].set_title('Fz', color='blue')
+					elif electrode_vector[i_scenario,1] == 0:
+						axs[0, 1].set_title('Fz', color='red')
 
-			axs[0, 2].axvline(x = this_event1_epoch, ymin = 0, ymax = 100, color = 'gray',linestyle='--', label='_Hidden label')
-			axs[0, 2].axvline(x = this_event2_epoch, ymin = 0, ymax = 100, color = 'gray',linestyle='--', label='_Hidden label')
-			axs[0, 2].plot(x_axis_vector_spec, filtered_this_epoch_bandpower_ratio_spec[:,2,:].T * 100, linewidth=1)
-			# axs[0, 2].plot(x_axis_vector_spec, std_bandpower[2,:].T * 100, linewidth=2 )
-			axs[0, 2].set_ylim([0, 100])
+					axs[0, 2].axvline(x = this_event1_epoch, ymin = 0, ymax = 100, color = 'gray',linestyle='--', label='_Hidden label')
+					axs[0, 2].axvline(x = this_event2_epoch, ymin = 0, ymax = 100, color = 'gray',linestyle='--', label='_Hidden label')
+					axs[0, 2].plot(x_axis_vector_spec, filtered_this_epoch_bandpower_ratio_spec[:,2,:].T * 100, linewidth=1)
+					# axs[0, 2].plot(x_axis_vector_spec, std_bandpower[2,:].T * 100, linewidth=2 )
+					axs[0, 2].set_ylim([0, 100])
 
-			
-			if electrode_vector[i_scenario,2] == 2:
-				axs[0, 2].set_title('F4', color='black')
-			elif electrode_vector[i_scenario,2] == 1:
-				axs[0, 2].set_title('F4', color='blue')
-			elif electrode_vector[i_scenario,2] == 0:
-				axs[0, 2].set_title('F4', color='red')
+					
+					if electrode_vector[i_scenario,2] == 2:
+						axs[0, 2].set_title('F4', color='black')
+					elif electrode_vector[i_scenario,2] == 1:
+						axs[0, 2].set_title('F4', color='blue')
+					elif electrode_vector[i_scenario,2] == 0:
+						axs[0, 2].set_title('F4', color='red')
 
-			axs[1, 0].axvline(x = this_event1_epoch, ymin = 0, ymax = 100, color = 'gray',linestyle='--', label='_Hidden label')
-			axs[1, 0].axvline(x = this_event2_epoch, ymin = 0, ymax = 100, color = 'gray',linestyle='--', label='_Hidden label')
-			axs[1, 0].plot(x_axis_vector_spec, filtered_this_epoch_bandpower_ratio_spec[:,3,:].T * 100, linewidth=1)
-			# axs[1, 0].plot(x_axis_vector_spec, std_bandpower[3,:].T * 100, linewidth=2)
-			axs[1, 0].set_ylim([0, 100])
-			if electrode_vector[i_scenario,3] == 2:
-				axs[1, 0].set_title('C3', color='black')
-			elif electrode_vector[i_scenario,3] == 1:
-				axs[1, 0].set_title('C3', color='blue')
-			elif electrode_vector[i_scenario,3] == 0:
-				axs[1, 0].set_title('C3', color='red')
+					axs[1, 0].axvline(x = this_event1_epoch, ymin = 0, ymax = 100, color = 'gray',linestyle='--', label='_Hidden label')
+					axs[1, 0].axvline(x = this_event2_epoch, ymin = 0, ymax = 100, color = 'gray',linestyle='--', label='_Hidden label')
+					axs[1, 0].plot(x_axis_vector_spec, filtered_this_epoch_bandpower_ratio_spec[:,3,:].T * 100, linewidth=1)
+					# axs[1, 0].plot(x_axis_vector_spec, std_bandpower[3,:].T * 100, linewidth=2)
+					axs[1, 0].set_ylim([0, 100])
+					if electrode_vector[i_scenario,3] == 2:
+						axs[1, 0].set_title('C3', color='black')
+					elif electrode_vector[i_scenario,3] == 1:
+						axs[1, 0].set_title('C3', color='blue')
+					elif electrode_vector[i_scenario,3] == 0:
+						axs[1, 0].set_title('C3', color='red')
 
-			axs[1, 1].axvline(x = this_event1_epoch, ymin = 0, ymax = 100, color = 'gray',linestyle='--', label='_Hidden label')
-			axs[1, 1].axvline(x = this_event2_epoch, ymin = 0, ymax = 100, color = 'gray',linestyle='--', label='_Hidden label')
-			axs[1, 1].plot(x_axis_vector_spec, filtered_this_epoch_bandpower_ratio_spec[:,4,:].T * 100, linewidth=1)
-			# axs[1, 1].plot(x_axis_vector_spec, std_bandpower[4,:].T * 100, linewidth=2 )
-			axs[1, 1].set_ylim([0, 100])
-			if electrode_vector[i_scenario,4] == 2:
-				axs[1, 1].set_title('Cz', color='black')
-			elif electrode_vector[i_scenario,4] == 1:
-				axs[1, 1].set_title('Cz', color='blue')
-			elif electrode_vector[i_scenario,4] == 0:
-				axs[1, 1].set_title('Cz', color='red')
+					axs[1, 1].axvline(x = this_event1_epoch, ymin = 0, ymax = 100, color = 'gray',linestyle='--', label='_Hidden label')
+					axs[1, 1].axvline(x = this_event2_epoch, ymin = 0, ymax = 100, color = 'gray',linestyle='--', label='_Hidden label')
+					axs[1, 1].plot(x_axis_vector_spec, filtered_this_epoch_bandpower_ratio_spec[:,4,:].T * 100, linewidth=1)
+					# axs[1, 1].plot(x_axis_vector_spec, std_bandpower[4,:].T * 100, linewidth=2 )
+					axs[1, 1].set_ylim([0, 100])
+					if electrode_vector[i_scenario,4] == 2:
+						axs[1, 1].set_title('Cz', color='black')
+					elif electrode_vector[i_scenario,4] == 1:
+						axs[1, 1].set_title('Cz', color='blue')
+					elif electrode_vector[i_scenario,4] == 0:
+						axs[1, 1].set_title('Cz', color='red')
 
-			axs[1, 2].axvline(x = this_event1_epoch, ymin = 0, ymax = 100, color = 'gray',linestyle='--', label='_Hidden label')
-			axs[1, 2].axvline(x = this_event2_epoch, ymin = 0, ymax = 100, color = 'gray',linestyle='--', label='_Hidden label')
-			axs[1, 2].plot(x_axis_vector_spec, filtered_this_epoch_bandpower_ratio_spec[:,5,:].T * 100, linewidth=1)
-			# axs[1, 2].plot(x_axis_vector_spec, std_bandpower[5,:].T * 100, linewidth=2 )
-			axs[1, 2].set_ylim([0, 100])
-			if electrode_vector[i_scenario,5] == 2:
-				axs[1, 2].set_title('C4', color='black')
-			elif electrode_vector[i_scenario,5] == 1:
-				axs[1, 2].set_title('C4', color='blue')
-			elif electrode_vector[i_scenario,5] == 0:
-				axs[1, 2].set_title('C4', color='red')
+					axs[1, 2].axvline(x = this_event1_epoch, ymin = 0, ymax = 100, color = 'gray',linestyle='--', label='_Hidden label')
+					axs[1, 2].axvline(x = this_event2_epoch, ymin = 0, ymax = 100, color = 'gray',linestyle='--', label='_Hidden label')
+					axs[1, 2].plot(x_axis_vector_spec, filtered_this_epoch_bandpower_ratio_spec[:,5,:].T * 100, linewidth=1)
+					# axs[1, 2].plot(x_axis_vector_spec, std_bandpower[5,:].T * 100, linewidth=2 )
+					axs[1, 2].set_ylim([0, 100])
+					if electrode_vector[i_scenario,5] == 2:
+						axs[1, 2].set_title('C4', color='black')
+					elif electrode_vector[i_scenario,5] == 1:
+						axs[1, 2].set_title('C4', color='blue')
+					elif electrode_vector[i_scenario,5] == 0:
+						axs[1, 2].set_title('C4', color='red')
 
-			axs[2, 0].axvline(x = this_event1_epoch, ymin = 0, ymax = 100, color = 'gray',linestyle='--', label='_Hidden label')
-			axs[2, 0].axvline(x = this_event2_epoch, ymin = 0, ymax = 100, color = 'gray',linestyle='--', label='_Hidden label')				
-			axs[2, 0].plot(x_axis_vector_spec, filtered_this_epoch_bandpower_ratio_spec[:,6,:].T * 100, linewidth=1)
-			# axs[2, 0].plot(x_axis_vector_spec, std_bandpower[6,:].T * 100 , linewidth=2)
-			axs[2, 0].set_ylim([0, 100])
-			if electrode_vector[i_scenario,6] == 2:
-				axs[2, 0].set_title('P3', color='black')
-			elif electrode_vector[i_scenario,6] == 1:
-				axs[2, 0].set_title('P3', color='blue')
-			elif electrode_vector[i_scenario,6] == 0:
-				axs[2, 0].set_title('P3', color='red')
+					axs[2, 0].axvline(x = this_event1_epoch, ymin = 0, ymax = 100, color = 'gray',linestyle='--', label='_Hidden label')
+					axs[2, 0].axvline(x = this_event2_epoch, ymin = 0, ymax = 100, color = 'gray',linestyle='--', label='_Hidden label')				
+					axs[2, 0].plot(x_axis_vector_spec, filtered_this_epoch_bandpower_ratio_spec[:,6,:].T * 100, linewidth=1)
+					# axs[2, 0].plot(x_axis_vector_spec, std_bandpower[6,:].T * 100 , linewidth=2)
+					axs[2, 0].set_ylim([0, 100])
+					if electrode_vector[i_scenario,6] == 2:
+						axs[2, 0].set_title('P3', color='black')
+					elif electrode_vector[i_scenario,6] == 1:
+						axs[2, 0].set_title('P3', color='blue')
+					elif electrode_vector[i_scenario,6] == 0:
+						axs[2, 0].set_title('P3', color='red')
 
-			axs[2, 1].axvline(x = this_event1_epoch, ymin = 0, ymax = 100, color = 'gray',linestyle='--', label='_Hidden label')
-			axs[2, 1].axvline(x = this_event2_epoch, ymin = 0, ymax = 100, color = 'gray',linestyle='--', label='_Hidden label')
-			axs[2, 1].plot(x_axis_vector_spec, filtered_this_epoch_bandpower_ratio_spec[:,7,:].T * 100, linewidth=1)
-			# axs[2, 1].plot(x_axis_vector_spec, std_bandpower[7,:].T * 100 , linewidth=2)
-			axs[2, 1].set_ylim([0, 100])
-			if electrode_vector[i_scenario,7] == 2:
-				axs[2, 1].set_title('POz', color='black')
-			elif electrode_vector[i_scenario,7] == 1:
-				axs[2, 1].set_title('POz', color='blue')
-			elif electrode_vector[i_scenario,7] == 0:
-				axs[2, 1].set_title('POz', color='red')
+					axs[2, 1].axvline(x = this_event1_epoch, ymin = 0, ymax = 100, color = 'gray',linestyle='--', label='_Hidden label')
+					axs[2, 1].axvline(x = this_event2_epoch, ymin = 0, ymax = 100, color = 'gray',linestyle='--', label='_Hidden label')
+					axs[2, 1].plot(x_axis_vector_spec, filtered_this_epoch_bandpower_ratio_spec[:,7,:].T * 100, linewidth=1)
+					# axs[2, 1].plot(x_axis_vector_spec, std_bandpower[7,:].T * 100 , linewidth=2)
+					axs[2, 1].set_ylim([0, 100])
+					if electrode_vector[i_scenario,7] == 2:
+						axs[2, 1].set_title('POz', color='black')
+					elif electrode_vector[i_scenario,7] == 1:
+						axs[2, 1].set_title('POz', color='blue')
+					elif electrode_vector[i_scenario,7] == 0:
+						axs[2, 1].set_title('POz', color='red')
 
-			axs[2, 2].axvline(x = this_event1_epoch, ymin = 0, ymax = 100, color = 'gray',linestyle='--', label='_Hidden label')
-			axs[2, 2].axvline(x = this_event2_epoch, ymin = 0, ymax = 100, color = 'gray',linestyle='--', label='_Hidden label')
-			axs[2, 2].plot(x_axis_vector_spec, filtered_this_epoch_bandpower_ratio_spec[:,8,:].T * 100, linewidth=1)
-			# axs[2, 2].plot(x_axis_vector_spec, std_bandpower[8,:].T * 100, linewidth=2)
-			axs[2, 2].set_ylim([0, 100])
-			if electrode_vector[i_scenario,8] == 2:
-				axs[2, 2].set_title('P4', color='black')
-			elif electrode_vector[i_scenario,8] == 1:
-				axs[2, 2].set_title('P4', color='blue')
-			elif electrode_vector[i_scenario,8] == 0:
-				axs[2, 2].set_title('P4', color='red')
-			
-			for ax in axs.flat:
-			    ax.set(xlabel="percent of trial", ylabel='percent of frequency power')
+					axs[2, 2].axvline(x = this_event1_epoch, ymin = 0, ymax = 100, color = 'gray',linestyle='--', label='_Hidden label')
+					axs[2, 2].axvline(x = this_event2_epoch, ymin = 0, ymax = 100, color = 'gray',linestyle='--', label='_Hidden label')
+					axs[2, 2].plot(x_axis_vector_spec, filtered_this_epoch_bandpower_ratio_spec[:,8,:].T * 100, linewidth=1)
+					# axs[2, 2].plot(x_axis_vector_spec, std_bandpower[8,:].T * 100, linewidth=2)
+					axs[2, 2].set_ylim([0, 100])
+					if electrode_vector[i_scenario,8] == 2:
+						axs[2, 2].set_title('P4', color='black')
+					elif electrode_vector[i_scenario,8] == 1:
+						axs[2, 2].set_title('P4', color='blue')
+					elif electrode_vector[i_scenario,8] == 0:
+						axs[2, 2].set_title('P4', color='red')
+					
+					for ax in axs.flat:
+					    ax.set(xlabel="percent of trial", ylabel='percent of frequency power')
 
-			# Hide x labels and tick labels for top plots and y ticks for right plots.
-			for ax in axs.flat:
-			    ax.label_outer()
+					# Hide x labels and tick labels for top plots and y ticks for right plots.
+					for ax in axs.flat:
+					    ax.label_outer()
 
-			if plot_workload:
-				if (crews_to_process[i_crew] == 'Crew_12') & (scenarios[i_scenario] == '5'):
-					leg = axs[0, 2].legend(["workload", "event1","event2","theta","alpha","beta","gamma", "std"])
-				elif scenarios[i_scenario] == '2':
-					leg = axs[0, 2].legend(["workload","event1","event2", "theta","alpha","beta","gamma", "std"])
-				else:
-					leg = axs[0, 2].legend(["theta","alpha","beta","gamma", "std"])
-				for line in leg.get_lines():
-					line.set_linewidth(4.0)
-			else:
-				leg = axs[0, 2].legend(["event1","event2","theta","alpha","beta","gamma", "std"])
-			for line in leg.get_lines():
-				line.set_linewidth(4.0)
-			
-			fig.set_size_inches((22, 11))
-			# plt.savefig(crew_dir + "/Figures/" + 'eeg_powerbands_'+crews_to_process[i_crew]+'_leftseat_scenario'+scenarios[i_scenario]+'.tif',bbox_inches='tight',pad_inches=0, dpi=500)
-			#fig.savefig("Figures/" + 'eeg_powerbandsSpec_'+crews_to_process[i_crew]+'_'+file_types[i_seat]+'_scenario'+scenarios[i_scenario]+'.tif',bbox_inches='tight',pad_inches=0)
+					if plot_workload:
+						if (crews_to_process[i_crew] == 'Crew_12') & (scenarios[i_scenario] == '5'):
+							leg = axs[0, 2].legend(["workload", "event1","event2","theta","alpha","beta","gamma", "std"])
+						elif scenarios[i_scenario] == '2':
+							leg = axs[0, 2].legend(["workload","event1","event2", "theta","alpha","beta","gamma", "std"])
+						else:
+							leg = axs[0, 2].legend(["theta","alpha","beta","gamma", "std"])
+						for line in leg.get_lines():
+							line.set_linewidth(4.0)
+					else:
+						leg = axs[0, 2].legend(["event1","event2","theta","alpha","beta","gamma", "std"])
+					for line in leg.get_lines():
+						line.set_linewidth(4.0)
+					
+					fig.set_size_inches((22, 11))
+					# plt.savefig(crew_dir + "/Figures/" + 'eeg_powerbands_'+crews_to_process[i_crew]+'_leftseat_scenario'+scenarios[i_scenario]+'.tif',bbox_inches='tight',pad_inches=0, dpi=500)
+					fig.savefig("Figures/" + 'eeg_powerbandsSpec_'+crews_to_process[i_crew]+'_'+file_types[i_seat]+'_scenario'+scenarios[i_scenario]+'.tif',bbox_inches='tight',pad_inches=0)
 
 
 	event_eegTimeSeries_metrics.info()
