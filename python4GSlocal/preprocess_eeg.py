@@ -19,16 +19,16 @@ helper = helpers.HELP()
 bucket = helper.getBucket()
 
 ########### SETTINGS ##################
-# crews_to_process = ['Crew_01','Crew_02','Crew_03', 'Crew_04','Crew_05', 'Crew_06', 'Crew_07', 'Crew_08', 'Crew_09', 'Crew_10', 'Crew_11', 'Crew_13']
+crews_to_process = ['Crew_02','Crew_03', 'Crew_04','Crew_05', 'Crew_06', 'Crew_07', 'Crew_08', 'Crew_09', 'Crew_10', 'Crew_11', 'Crew_13']
 # crews_to_process = ['Crew_04','Crew_05', 'Crew_06', 'Crew_07', 'Crew_08', 'Crew_09', 'Crew_10', 'Crew_11', 'Crew_13']
-crews_to_process = ["Crew_01"]
+# crews_to_process = ["Crew_01"]
 file_types = ["abm_leftseat", "abm_rightseat"]
 scenarios = ["1", "2", "3", "5", "6", "7"]
 plot_raw = 0
-plot_individual = 1
+plot_individual = 0
 plot_workload = 0
 # plot_timeseries_psd = 1
-number_of_epochs = 1000
+number_of_epochs = 1000  # not ideal. Probably want to move to a fixed epoch similar to smarteye/ekg
 #######################################
 
 
@@ -40,6 +40,7 @@ for i_crew in range(len(crews_to_process)):
     eeg_freqSpec_band_storage[:] = np.nan
     eeg_timesec_epoch_storage = np.zeros((len(scenarios), number_of_epochs))
     crew_dir = crews_to_process[i_crew]
+    pct_usable_matrix = np.zeros((len(scenarios), len(file_types)))
     process_dir_name = crew_dir + "/Processing/"
 
     helper.reset_folder_storage()
@@ -59,18 +60,29 @@ for i_crew in range(len(crews_to_process)):
                 + ".csv"
             )
             if blob.exists():
-            	abm_data = helper.read_bucket_table(process_dir_name, file_types[i_seat] + "_scenario" + scenarios[i_scenario] + ".csv")
+                abm_data = helper.read_bucket_table(process_dir_name, file_types[i_seat] + "_scenario" + scenarios[i_scenario] + ".csv")
 
                 electrode_vector_df = pd.read_excel(
                     "gs://soteria_study_data/Analysis/"
                     + "eeg_electrode_quality_vector.xlsx",
-                    helper.getElectrodeVectorWorksheet(
+                    helper.getSubWorksheet(
                         crews_to_process[i_crew], file_types[i_seat]
                     ),
                 )
                 electrode_vector = electrode_vector_df.to_numpy()
 
                 time_end = abm_data.UserTimeStamp[abm_data.UserTimeStamp.shape[0] - 1]
+
+                ch_types = ['eeg','eeg','eeg','eeg','eeg','eeg','eeg','eeg','misc','misc','misc']
+                ch_names = ['FP1','FP2','F3', 'F4','P3', 'P4', 'O1', 'O2', 'A1','A2','A3']
+                info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
+                # raw.info = info
+                montage =  mne.channels.make_standard_montage('standard_1020')
+                raw.set_montage(montage, match_case=False)
+                
+            
+            
+            
 
                 print(
                     "QA checking ECG: "
@@ -242,6 +254,10 @@ for i_crew in range(len(crews_to_process)):
                         np.asarray(np.where(electrode_vector[i_scenario, :] == 2)) - 1
                     )
 
+                    pct_usable_matrix[i_scenario, i_seat] = np.rint(
+                        (include_electrode_vector.size / 9) * 100
+                    )    
+                    
                     theta = eeg_freqSpec_band_storage[
                         2, include_electrode_vector, this_epoch, i_scenario
                     ].sum()  # theta
@@ -803,8 +819,10 @@ for i_crew in range(len(crews_to_process)):
                         pad_inches=0,
                     )
 
+    pct_usable_matrix_df = pd.DataFrame(pct_usable_matrix)
+    pct_usable_matrix_df.to_csv("Processing/" + "eeg_pct_usable_matrix.csv")
     event_eegTimeSeries_metrics.to_csv(
         "Processing/" + "event_eegTimeSeries_metrics.csv"
     )
 
-    helper.sync_crew_folder_storage()
+    helper.sync_crew_folder_storage(crews_to_process[i_crew])

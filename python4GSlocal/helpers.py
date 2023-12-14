@@ -7,9 +7,10 @@ from os.path import exists
 import time
 import pandas as pd
 from google.cloud import storage
+import subprocess
 
 class HELP:
-    def getElectrodeVectorWorksheet(self, crewID, seat):
+    def getSubWorksheet(self, crewID, seat):
         """ 
         grabbing the naming scheme for the electrode worksheet    
         """
@@ -226,23 +227,23 @@ class HELP:
         else:
             os.mkdir("Analysis")
 
-    def sync_crew_folder_storage(self):
+    def sync_crew_folder_storage(self,crew_dir):
         subprocess.call(
             'gsutil -m rsync -r Figures/ "gs://soteria_study_data/"'
-            + crews_to_process[i_crew]
+            + crew_dir
             + '"/Figures"',
             shell=True,
         )
         subprocess.call(
             'gsutil -m rsync -r Processing/ "gs://soteria_study_data/"'
-            + crews_to_process[i_crew]
+            + crew_dir
             + '"/Processing"',
             shell=True,
         )
         subprocess.call(
             'gsutil -m rsync -r Analysis/ "gs://soteria_study_data/"'
-            + crews_to_process[i_crew]
-            + '"/Figures"',
+            + crew_dir
+            + '"/Analysis"',
             shell=True,
         )
 

@@ -457,4 +457,4 @@ for i_crew in range(len(crews_to_process)):
         "Processing/" + "event_smarteyeTimeSeries_metrics.csv"
     )
     
-    helper.sync_crew_folder_storage()
+    helper.sync_crew_folder_storage(crews_to_process[i_crew])
