@@ -1,217 +1,384 @@
 import pandas as pd
+import helpers
+import importlib
+from argparse import ArgumentParser
+import sys
 import os
-import array as arr
-import numpy as np
-from os.path import exists
-from datetime import datetime
-#from google.cloud import storage
-from google.cloud import storage
-import subprocess
-import time
-from pathlib import Path
-#bucket_name = os.getenv("soteria_study_data")
-import shutil
 
-#print("APPDAT SIMPLE STORAGE SERVICE | Currently connected to Bucket: " + bucket_name)
+importlib.reload(helpers)
 
-
-def adjust_timestamps(datainput):
-	timestamps_time = np.zeros(len(datainput.UserTimeStamp))
-	for this_index in range(datainput.UserTimeStamp.shape[0]):
-		this_timestamp = datainput.UserTimeStamp[this_index]/1e7
-		this_timestamp.astype('int64')
-		this_timestamp_datetime = datetime.fromtimestamp(this_timestamp)
-		this_timestamp_time_string = str(this_timestamp_datetime.time())
-
-		## H:M:S -> seconds
-		this_timestamp_time_string_split = this_timestamp_time_string.split(':')
-		timestamps_time[this_index] = float(this_timestamp_time_string_split[0]) * 3600 + float(this_timestamp_time_string_split[1]) * 60 + float(this_timestamp_time_string_split[2])
-
-	timestamps_time_adjusted = timestamps_time - timestamps_time[0]	
-	datainput.UserTimeStamp = timestamps_time_adjusted
-	return datainput
-
+helper = helpers.HELP()
 
 ###############################################
-## need to adjust this for gsutil ##
-#crew_dir = os.getcwd()
-
-storage_client = storage.Client(project="soteria-fa59")
-bucket = storage_client.bucket("soteria_study_data")
-bucket = storage.Bucket(storage_client, "soteria_study_data", user_project="soteria-fa59")
-#all_blobs = list(storage_client.list_blobs(bucket))
-#print(all_blobs)
-
-crews_to_process = ['Crew_04', 'Crew_05', 'Crew_09']
-# crews_to_process = ['Crew_13']
-# crews_to_process = ['Crew_03']
-#print(crews_to_process)
-#path_to_project = 'C:/Users/tfettrow/Box/SOTERIA'
+parser = ArgumentParser(description="Export Raw Data")
+parser.add_argument(
+    "-c", "--crews", type=str, default=["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "13"]
+)
+parser.add_argument("-s", "--scenarios", type=str, default=["1", "2", "3", "5", "6", "7"])
+parser.add_argument("-d", "--directory", type=str)
+parser.add_argument("--Push2Cloud", type=bool, default=False)
+args = parser.parse_args()
+crew_arr, scenarios = helper.ParseCrewAndScenario(sys.argv, args.crews, args.scenarios)
+if args.directory:
+    helper.local_process_dir = args.directory
 ###############################################
 
-for this_crew in crews_to_process:
-	# crew_dir = path_to_project + '/' + this_crew
-	crew_dir = this_crew
-	
-	# blob = bucket.blob(crew_dir + '/trial_settings.txt')
-	col_Names = ["RunDateTime","Scenario"]
-	trial_settings = pd.read_table('gs://soteria_study_data/' + crew_dir + '/trial_settings.txt',delimiter=",")
+for i_crew in range(len(crew_arr)):
+    helper.crew_dir = "Crew_" + crew_arr[i_crew] + "/"
 
-	# Get blobs in bucket (including all subdirectories)
-	# blobs_all = list(bucket.list_blobs())
+    trial_settings = helper.read_bucket_table("trial_settings.txt")
+    output_dir = helper.local_process_dir + helper.crew_dir
+    trial_settings.to_csv(output_dir + "trial_settings" + ".txt", index=False)
 
-	# Get blobs in specific subirectory
-	# blobs_specific = bucket.list_blobs(prefix=crew_dir + '/Synched/', delimiter="/",max_results=1)
-	
-	# print("prefixes:")
-	# print(list(blobs_specific.prefixes))
-	# trial_folders = list(blobs_specific.prefixes)
-	
-	
-	# if not os.path.isdir('gs://soteria_study_data/'+crew_dir + "/Processing"):
-		# print("Processing")
-		# 'gs://soteria_study_data/Crew_02/trial_settings.txt'
-		# os.mkdir('gs://soteria_study_data/'+crew_dir + "/Processing")
+    for this_folder in range(trial_settings.shape[0]):
+        if os.path.exists(output_dir + "Processing/abm_leftseat_" + trial_settings.Scenario[this_folder] + ".csv"):
+            print(output_dir + "Processing/abm_leftseat_" + trial_settings.Scenario[this_folder] + ".csv already exists")
+            continue
+        else:
+            this_table = pd.DataFrame()
+            print(
+                "processing: " + (helper.crew_dir + "Synched/" + str(trial_settings.RunDateTime[this_folder]) + "/ABM.log")
+            )
+            try:
+                this_table = helper.read_bucket_log(
+                    "Synched/" + str(trial_settings.RunDateTime[this_folder]) + "/ABM.log",
+                )
+            except:
+                print("file doesnt exist")
+            if not this_table.empty:
+                abm_leftseat = helper.adjust_timestamps(this_table)
+                helper.store_file(abm_leftseat, "Processing/", "abm_leftseat_" + str(trial_settings.Scenario[this_folder]))
+                print("converted to: abm_leftseat_" + trial_settings.Scenario[this_folder])
 
+        if os.path.exists(output_dir + "Processing/emp_acc_leftseat_" + trial_settings.Scenario[this_folder] + ".csv"):
+            print(output_dir + "Processing/emp_acc_leftseat_" + trial_settings.Scenario[this_folder] + ".csv already exists")
+            continue
+        else:
+            this_table = pd.DataFrame()
+            print(
+                "processing: "
+                + (helper.crew_dir + "Synched/" + str(trial_settings.RunDateTime[this_folder]) + "/Emp_Emp_Device_Acc.log")
+            )
+            try:
+                this_table = helper.read_bucket_log(
+                    "Synched/" + str(trial_settings.RunDateTime[this_folder]) + "/Emp_Emp_Device_Acc.log",
+                )
+            except:
+                print("file doesnt exist")
+            if not this_table.empty:
+                emp_acc_leftseat = helper.adjust_timestamps(this_table)
+                helper.store_file(
+                    emp_acc_leftseat, "Processing/", "emp_acc_leftseat_" + str(trial_settings.Scenario[this_folder])
+                )
+                print("converted to: emp_acc_leftseat_" + trial_settings.Scenario[this_folder])
 
-	# gsutil -q stat 'gs://soteria_study_data/'+crew_dir + "/Processing"; echo $?
-	# dir_name = 'gs://soteria_study_data/'+crew_dir + "/Processing"
-	# file_list = os.listdir(dir_name)
-	
-	# subprocess.Popen('gsutil rm "gs://soteria_study_data/"' + crew_dir + '"/Processing/ghost.txt"', shell=True)
-	# blob = bucket.blob(crew_dir + '/Processing')
-	# if blob.exists():
-	# 	print("yep")
-	# else:
+        if os.path.exists(output_dir + "Processing/emp_bvp_leftseat_" + trial_settings.Scenario[this_folder] + ".csv"):
+            print(output_dir + "Processing/emp_bvp_leftseat_" + trial_settings.Scenario[this_folder] + ".csv already exists")
+            continue
+        else:
+            this_table = pd.DataFrame()
+            print(
+                "processing: "
+                + (helper.crew_dir + "Synched/" + str(trial_settings.RunDateTime[this_folder]) + "/Emp_Emp_Device_Bvp.log")
+            )
+            try:
+                this_table = helper.read_bucket_log(
+                    "Synched/" + str(trial_settings.RunDateTime[this_folder]) + "/Emp_Emp_Device_Bvp.log",
+                )
+            except:
+                print("file doesnt exist")
+            if not this_table.empty:
+                emp_bvp_leftseat = helper.adjust_timestamps(this_table)
+                helper.store_file(
+                    emp_bvp_leftseat, "Processing/", "emp_bvp_leftseat_" + str(trial_settings.Scenario[this_folder])
+                )
+                print("converted to: emp_bvp_leftseat_" + trial_settings.Scenario[this_folder])
 
-	if exists("Processing"):
-		subprocess.Popen('rm -rf Processing', shell=True)
-		time.sleep(5)
-		os.mkdir("Processing")
-	else:
-		os.mkdir("Processing")
+        if os.path.exists(output_dir + "Processing/emp_gsr_leftseat_" + trial_settings.Scenario[this_folder] + ".csv"):
+            print(output_dir + "Processing/emp_gsr_leftseat_" + trial_settings.Scenario[this_folder] + ".csv already exists")
+            continue
+        else:
+            this_table = pd.DataFrame()
+            print(
+                "processing: "
+                + (helper.crew_dir + "Synched/" + str(trial_settings.RunDateTime[this_folder]) + "/Emp_Emp_Device_Gsr.log")
+            )
+            try:
+                this_table = helper.read_bucket_log(
+                    "Synched/" + str(trial_settings.RunDateTime[this_folder]) + "/Emp_Emp_Device_Gsr.log",
+                )
+            except:
+                print("file doesnt exist")
+            if not this_table.empty:
+                emp_gsr_leftseat = helper.adjust_timestamps(this_table)
+                helper.store_file(
+                    emp_gsr_leftseat, "Processing/", "emp_gsr_leftseat_" + str(trial_settings.Scenario[this_folder])
+                )
+                print("converted to: emp_gsr_leftseat_" + trial_settings.Scenario[this_folder])
 
-	for this_folder in range(trial_settings.shape[0]):
-		blob = bucket.blob(crew_dir + '/Synched/' + str(trial_settings.RunDateTime[this_folder]) + '/ABM.log')
-		if blob.exists():
-			print("processing: " + (crew_dir + "/Synched/" + str(trial_settings.RunDateTime[this_folder])+ '/ABM.log'))
-			this_table = pd.read_table(('gs://soteria_study_data/' + crew_dir + '/Synched/' + str(trial_settings.RunDateTime[this_folder]) + '/ABM.log'),delimiter='\t')
-			if not this_table.empty:
-				abm_leftseat = adjust_timestamps(this_table)
-				abm_leftseat.to_csv("Processing/" + 'abm_leftseat_' + str(trial_settings.Scenario[this_folder])+'.csv',index=False)
+        if os.path.exists(output_dir + "Processing/emp_ibi_leftseat_" + trial_settings.Scenario[this_folder] + ".csv"):
+            print(output_dir + "Processing/emp_ibi_leftseat_" + trial_settings.Scenario[this_folder] + ".csv already exists")
+            continue
+        else:
+            this_table = pd.DataFrame()
+            print(
+                "processing: "
+                + (helper.crew_dir + "Synched/" + str(trial_settings.RunDateTime[this_folder]) + "/Emp_Emp_Device_Ibi.log")
+            )
+            try:
+                this_table = helper.read_bucket_log(
+                    "Synched/" + str(trial_settings.RunDateTime[this_folder]) + "/Emp_Emp_Device_Ibi.log"
+                )
+            except:
+                print("file doesnt exist")
+            if not this_table.empty:
+                emp_ibi_leftseat = helper.adjust_timestamps(this_table)
+                helper.store_file(
+                    emp_ibi_leftseat, "Processing/", "emp_ibi_leftseat_" + str(trial_settings.Scenario[this_folder])
+                )
+                print("converted to: emp_ibi_leftseat_" + trial_settings.Scenario[this_folder])
 
-		blob = bucket.blob(crew_dir + "/Synched/" + str(trial_settings.RunDateTime[this_folder]) + '/Emp_Emp_Device_Acc.log')
-		if blob.exists():
-			print("processing: " + (crew_dir + "/Synched/" + str(trial_settings.RunDateTime[this_folder])+ '/Emp_Emp_Device_Acc.log'))
-			this_table = pd.read_table(('gs://soteria_study_data/' + crew_dir + "/Synched/" + str(trial_settings.RunDateTime[this_folder]) + '/Emp_Emp_Device_Acc.log'),delimiter='\t')
-			if not this_table.empty:
-				emp_acc_leftseat = adjust_timestamps(this_table)
-				emp_acc_leftseat.to_csv("Processing/" + 'emp_acc_leftseat_' + str(trial_settings.Scenario[this_folder])+'.csv',index=False)
+        if os.path.exists(output_dir + "Processing/emp_temp_leftseat_" + trial_settings.Scenario[this_folder] + ".csv"):
+            print(
+                output_dir + "Processing/emp_temp_leftseat_" + trial_settings.Scenario[this_folder] + ".csv already exists"
+            )
+            continue
+        else:
+            this_table = pd.DataFrame()
+            print(
+                "processing: "
+                + (helper.crew_dir + "Synched/" + str(trial_settings.RunDateTime[this_folder]) + "/Emp_Emp_Device_Temp.log")
+            )
+            try:
+                this_table = helper.read_bucket_log(
+                    "Synched/" + str(trial_settings.RunDateTime[this_folder]) + "/Emp_Emp_Device_Temp.log",
+                )
+            except:
+                print("file doesnt exist")
+            if not this_table.empty:
+                emp_temp_leftseat = helper.adjust_timestamps(this_table)
+                helper.store_file(
+                    emp_temp_leftseat, "Processing/", "emp_temp_leftseat_" + str(trial_settings.Scenario[this_folder])
+                )
+                print("converted to: emp_temp_leftseat_" + trial_settings.Scenario[this_folder])
 
-		blob = bucket.blob(crew_dir + "/Synched/" + str(trial_settings.RunDateTime[this_folder]) + '/Emp_Emp_Device_Bvp.log')
-		if blob.exists():
-			print("processing: " + (crew_dir + "/Synched/" + str(trial_settings.RunDateTime[this_folder])+ '/Emp_Emp_Device_Bvp.log'))
-			this_table = pd.read_table(('gs://soteria_study_data/' + crew_dir + "/Synched/" + str(trial_settings.RunDateTime[this_folder]) + '/Emp_Emp_Device_Bvp.log'),delimiter='\t')
-			if not this_table.empty:
-				emp_bvp_leftseat = adjust_timestamps(this_table)
-				emp_bvp_leftseat.to_csv("Processing/" + 'emp_bvp_leftseat_' + str(trial_settings.Scenario[this_folder])+'.csv',index=False)
+        if os.path.exists(output_dir + "Processing/smarteye_leftseat_" + trial_settings.Scenario[this_folder] + ".csv"):
+            print(
+                output_dir + "Processing/smarteye_leftseat_" + trial_settings.Scenario[this_folder] + ".csv already exists"
+            )
+            continue
+        else:
+            this_table = pd.DataFrame()
+            print(
+                "processing: "
+                + (
+                    helper.crew_dir
+                    + "Synched/"
+                    + str(trial_settings.RunDateTime[this_folder])
+                    + "/SmartEye_Left_Seat_ET.log"
+                )
+            )
+            try:
+                this_table = helper.read_bucket_log(
+                    "Synched/" + str(trial_settings.RunDateTime[this_folder]) + "/SmartEye_Left_Seat_ET.log",
+                )
+            except:
+                print("file doesnt exist")
+            if not this_table.empty:
+                smarteye_leftseat = helper.adjust_timestamps(this_table)
+                helper.store_file(
+                    smarteye_leftseat, "Processing/", "smarteye_leftseat_" + str(trial_settings.Scenario[this_folder])
+                )
+                print("converted to: smarteye_leftseat_" + trial_settings.Scenario[this_folder])
 
-		blob = bucket.blob(crew_dir + "/Synched/" + str(trial_settings.RunDateTime[this_folder]) + '/Emp_Emp_Device_Gsr.log')
-		if blob.exists():
-			print("processing: " + (crew_dir + "/Synched/" + str(trial_settings.RunDateTime[this_folder])+ '/Emp_Emp_Device_Gsr.log'))
-			this_table = pd.read_table(('gs://soteria_study_data/' +crew_dir + "/Synched/" + str(trial_settings.RunDateTime[this_folder]) + '/Emp_Emp_Device_Gsr.log'),delimiter='\t')
-			if not this_table.empty:
-				emp_gsr_leftseat = adjust_timestamps(this_table)
-				emp_gsr_leftseat.to_csv("Processing/" + 'emp_gsr_leftseat_' + str(trial_settings.Scenario[this_folder])+'.csv',index=False)
+        if os.path.exists(output_dir + "Processing/abm_rightseat_" + trial_settings.Scenario[this_folder] + ".csv"):
+            print(output_dir + "Processing/abm_rightseat_" + trial_settings.Scenario[this_folder] + ".csv already exists")
+            continue
+        else:
+            this_table = pd.DataFrame()
+            print(
+                "processing: " + (helper.crew_dir + "Synched/" + str(trial_settings.RunDateTime[this_folder]) + "/ABM-1.log")
+            )
+            try:
+                this_table = helper.read_bucket_log(
+                    "Synched/" + str(trial_settings.RunDateTime[this_folder]) + "/ABM-1.log",
+                )
+            except:
+                print("file doesnt exist")
+            if not this_table.empty:
+                abm_rightseat = helper.adjust_timestamps(this_table)
+                helper.store_file(abm_rightseat, "Processing/", "abm_rightseat_" + str(trial_settings.Scenario[this_folder]))
+                print("converted to: abm_rightseat_" + trial_settings.Scenario[this_folder])
 
-		blob = bucket.blob(crew_dir + "/Synched/" + str(trial_settings.RunDateTime[this_folder]) + '/Emp_Emp_Device_Ibi.log')
-		if blob.exists():
-			print("processing: " + (crew_dir + "/Synched/" + str(trial_settings.RunDateTime[this_folder])+ '/Emp_Emp_Device_Ibi.log'))
-			this_table = pd.read_table(('gs://soteria_study_data/' +crew_dir + "/Synched/" + str(trial_settings.RunDateTime[this_folder]) + '/Emp_Emp_Device_Ibi.log'),delimiter='\t')
-			if not this_table.empty:
-				emp_ibi_leftseat = adjust_timestamps(this_table)
-				emp_ibi_leftseat.to_csv("Processing/" + 'emp_ibi_leftseat_' + str(trial_settings.Scenario[this_folder])+'.csv',index=False)
+        if os.path.exists(output_dir + "Processing/emp_acc_rightseat_" + trial_settings.Scenario[this_folder] + ".csv"):
+            print(
+                output_dir + "Processing/emp_acc_rightseat_" + trial_settings.Scenario[this_folder] + ".csv already exists"
+            )
+            continue
+        else:
+            this_table = pd.DataFrame()
+            print(
+                "processing: "
+                + (helper.crew_dir + "Synched/" + str(trial_settings.RunDateTime[this_folder]) + "/Emp_Emp_Device2_Acc.log")
+            )
+            try:
+                this_table = helper.read_bucket_log(
+                    "Synched/" + str(trial_settings.RunDateTime[this_folder]) + "/Emp_Emp_Device2_Acc.log",
+                )
+            except:
+                print("file doesnt exist")
+            if not this_table.empty:
+                emp_acc_rightseat = helper.adjust_timestamps(this_table)
+                helper.store_file(
+                    emp_acc_rightseat, "Processing/", "emp_acc_rightseat_" + str(trial_settings.Scenario[this_folder])
+                )
+                print("converted to: emp_acc_rightseat_" + trial_settings.Scenario[this_folder])
 
-		blob = bucket.blob(crew_dir + "/Synched/" + str(trial_settings.RunDateTime[this_folder]) + '/Emp_Emp_Device_Temp.log')
-		if blob.exists():
-			print("processing: " + (crew_dir + "/Synched/" + str(trial_settings.RunDateTime[this_folder])+ '/Emp_Emp_Device_Temp.log'))
-			this_table = pd.read_table(('gs://soteria_study_data/' + crew_dir + "/Synched/" + str(trial_settings.RunDateTime[this_folder]) + '/Emp_Emp_Device_Temp.log'),delimiter='\t')
-			if not this_table.empty:
-				emp_temp_leftseat = adjust_timestamps(this_table)
-				emp_temp_leftseat.to_csv("Processing/" + 'emp_temp_leftseat_' + str(trial_settings.Scenario[this_folder])+'.csv',index=False)
+        if os.path.exists(output_dir + "Processing/emp_bvp_rightseat_" + trial_settings.Scenario[this_folder] + ".csv"):
+            print(
+                output_dir + "Processing/emp_bvp_rightseat_" + trial_settings.Scenario[this_folder] + ".csv already exists"
+            )
+            continue
+        else:
+            this_table = pd.DataFrame()
+            print(
+                "processing: "
+                + (helper.crew_dir + "Synched/" + str(trial_settings.RunDateTime[this_folder]) + "/Emp_Emp_Device2_Bvp.log")
+            )
+            try:
+                this_table = helper.read_bucket_log(
+                    "Synched/" + str(trial_settings.RunDateTime[this_folder]) + "/Emp_Emp_Device2_Bvp.log",
+                )
+            except:
+                print("file doesnt exist")
+            if not this_table.empty:
+                emp_bvp_rightseat = helper.adjust_timestamps(this_table)
+                helper.store_file(
+                    emp_bvp_rightseat, "Processing/", "emp_bvp_rightseat_" + str(trial_settings.Scenario[this_folder])
+                )
+                print("converted to: emp_bvp_rightseat_" + trial_settings.Scenario[this_folder])
 
-		blob = bucket.blob(crew_dir + "/Synched/" + str(trial_settings.RunDateTime[this_folder]) + '/SmartEye_Left_Seat_ET.log')
-		if blob.exists():
-			print("processing: " + (crew_dir + "/Synched/" + str(trial_settings.RunDateTime[this_folder])+ '/SmartEye_Left_Seat_ET.log'))
-			this_table = pd.read_table(('gs://soteria_study_data/' + crew_dir + "/Synched/" + str(trial_settings.RunDateTime[this_folder]) + '/SmartEye_Left_Seat_ET.log'),delimiter='\t')
-			if not this_table.empty:
-				smarteye_leftseat = adjust_timestamps(this_table)
-				smarteye_leftseat.to_csv("Processing/" + 'smarteye_leftseat_' + str(trial_settings.Scenario[this_folder])+'.csv',index=False)
+        if os.path.exists(output_dir + "Processing/emp_gsr_rightseat_" + trial_settings.Scenario[this_folder] + ".csv"):
+            print(
+                output_dir + "Processing/emp_gsr_rightseat_" + trial_settings.Scenario[this_folder] + ".csv already exists"
+            )
+            continue
+        else:
+            this_table = pd.DataFrame()
+            print(
+                "processing: "
+                + (helper.crew_dir + "Synched/" + str(trial_settings.RunDateTime[this_folder]) + "/Emp_Emp_Device2_Gsr.log")
+            )
+            try:
+                this_table = helper.read_bucket_log(
+                    "Synched/" + str(trial_settings.RunDateTime[this_folder]) + "/Emp_Emp_Device2_Gsr.log"
+                )
+            except:
+                print("file doesnt exist")
+            if not this_table.empty:
+                emp_gsr_rightseat = helper.adjust_timestamps(this_table)
+                helper.store_file(
+                    emp_gsr_rightseat, "Processing/", "emp_gsr_rightseat_" + str(trial_settings.Scenario[this_folder])
+                )
+                print("converted to: emp_gsr_rightseat_" + trial_settings.Scenario[this_folder])
 
-		blob = bucket.blob(crew_dir + "/Synched/" + str(trial_settings.RunDateTime[this_folder]) + '/ABM-1.log')
-		if blob.exists():
-			print("processing: " + (crew_dir + "/Synched/" + str(trial_settings.RunDateTime[this_folder])+ '/ABM-1.log'))
-			this_table = pd.read_table(('gs://soteria_study_data/' + crew_dir + "/Synched/" + str(trial_settings.RunDateTime[this_folder]) + '/ABM-1.log'),delimiter='\t')
-			if not this_table.empty:
-				abm_rightseat = adjust_timestamps(this_table)
-				abm_rightseat.to_csv("Processing/" + 'abm_rightseat_' + str(trial_settings.Scenario[this_folder])+'.csv',index=False)
+        if os.path.exists(output_dir + "Processing/emp_ibi_rightseat_" + trial_settings.Scenario[this_folder] + ".csv"):
+            print(
+                output_dir + "Processing/emp_ibi_rightseat_" + trial_settings.Scenario[this_folder] + ".csv already exists"
+            )
+            continue
+        else:
+            this_table = pd.DataFrame()
+            print(
+                "processing: "
+                + (helper.crew_dir + "Synched/" + str(trial_settings.RunDateTime[this_folder]) + "/Emp_Emp_Device2_Ibi.log")
+            )
+            try:
+                # breakpoint()
+                this_table = helper.read_bucket_log(
+                    "Synched/" + str(trial_settings.RunDateTime[this_folder]) + "/Emp_Emp_Device2_Ibi.log"
+                )
+            except:
+                print("file doesnt exist")
+            if not this_table.empty:
+                emp_ibi_rightseat = helper.adjust_timestamps(this_table)
+                helper.store_file(
+                    emp_ibi_rightseat, "Processing/", "emp_ibi_rightseat_" + str(trial_settings.Scenario[this_folder])
+                )
+                print("converted to: emp_ibi_rightseat_" + trial_settings.Scenario[this_folder])
 
-		blob = bucket.blob(crew_dir + "/Synched/" + str(trial_settings.RunDateTime[this_folder]) + '/Emp_Emp_Device2_Acc.log')
-		if blob.exists():
-			print("processing: " + (crew_dir + "/Synched/" + str(trial_settings.RunDateTime[this_folder])+ '/Emp_Emp_Device2_Acc.log'))
-			this_table = pd.read_table(('gs://soteria_study_data/' + crew_dir + "/Synched/" + str(trial_settings.RunDateTime[this_folder]) + '/Emp_Emp_Device2_Acc.log'),delimiter='\t')
-			if not this_table.empty:
-				emp_acc_rightseat = adjust_timestamps(this_table)
-				emp_acc_rightseat.to_csv("Processing/" + 'emp_acc_rightseat_' + str(trial_settings.Scenario[this_folder])+'.csv',index=False)
+        if os.path.exists(output_dir + "Processing/emp_temp_rightseat_" + trial_settings.Scenario[this_folder] + ".csv"):
+            print(
+                output_dir + "Processing/emp_temp_rightseat_" + trial_settings.Scenario[this_folder] + ".csv already exists"
+            )
+            continue
+        else:
+            this_table = pd.DataFrame()
+            print(
+                "processing: "
+                + (helper.crew_dir + "Synched/" + str(trial_settings.RunDateTime[this_folder]) + "/Emp_Emp_Device2_Temp.log")
+            )
+            try:
+                this_table = helper.read_bucket_log(
+                    "Synched/" + str(trial_settings.RunDateTime[this_folder]) + "/Emp_Emp_Device2_Temp.log",
+                )
+            except:
+                print("file doesnt exist")
+            if not this_table.empty:
+                emp_temp_rightseat = helper.adjust_timestamps(this_table)
+                helper.store_file(
+                    emp_temp_rightseat, "Processing/", "emp_temp_rightseat_" + str(trial_settings.Scenario[this_folder])
+                )
+                print("converted to: emp_temp_rightseat_" + trial_settings.Scenario[this_folder])
 
-		blob = bucket.blob(crew_dir + "/Synched/" + str(trial_settings.RunDateTime[this_folder]) + '/Emp_Emp_Device2_Bvp.log')
-		if blob.exists():
-			print("processing: " + (crew_dir + "/Synched/" + str(trial_settings.RunDateTime[this_folder])+ '/Emp_Emp_Device2_Bvp.log'))
-			this_table = pd.read_table(('gs://soteria_study_data/' + crew_dir + "/Synched/" + str(trial_settings.RunDateTime[this_folder]) + '/Emp_Emp_Device2_Bvp.log'),delimiter='\t')
-			if not this_table.empty:
-				emp_bvp_rightseat = adjust_timestamps(this_table)
-				emp_bvp_rightseat.to_csv("Processing/" + 'emp_bvp_rightseat_' + str(trial_settings.Scenario[this_folder])+'.csv',index=False)
+        if os.path.exists(output_dir + "Processing/smarteye_rightseat_" + trial_settings.Scenario[this_folder] + ".csv"):
+            print(
+                output_dir + "Processing/smarteye_rightseat_" + trial_settings.Scenario[this_folder] + ".csv already exists"
+            )
+            continue
+        else:
+            this_table = pd.DataFrame()
+            print(
+                "processing: "
+                + (
+                    helper.crew_dir
+                    + "Synched/"
+                    + str(trial_settings.RunDateTime[this_folder])
+                    + "/SmartEye_Right_Seat_ET.log"
+                )
+            )
+            try:
+                this_table = helper.read_bucket_log(
+                    "Synched/" + str(trial_settings.RunDateTime[this_folder]) + "/SmartEye_Right_Seat_ET.log",
+                )
+            except:
+                print("file doesnt exist")
+            if not this_table.empty:
+                smarteye_rightseat = helper.adjust_timestamps(this_table)
+                helper.store_file(
+                    smarteye_rightseat, "Processing/", "smarteye_rightseat_" + str(trial_settings.Scenario[this_folder])
+                )
+                print("converted to: smarteye_rightseat_" + trial_settings.Scenario[this_folder])
 
-		blob = bucket.blob(crew_dir + "/Synched/" + str(trial_settings.RunDateTime[this_folder]) + '/Emp_Emp_Device2_Gsr.log')
-		if blob.exists():
-			print("processing: " + (crew_dir + "/Synched/" + str(trial_settings.RunDateTime[this_folder])+ '/Emp_Emp_Device2_Gsr.log'))
-			this_table = pd.read_table(('gs://soteria_study_data/' + crew_dir + "/Synched/" + str(trial_settings.RunDateTime[this_folder]) + '/Emp_Emp_Device2_Gsr.log'),delimiter='\t')
-			if not this_table.empty:
-				emp_gsr_rightseat = adjust_timestamps(this_table)
-				emp_gsr_rightseat.to_csv("Processing/" + 'emp_gsr_rightseat_' + str(trial_settings.Scenario[this_folder])+'.csv',index=False)
+        if os.path.exists(output_dir + "Processing/ifd_cockpit_" + trial_settings.Scenario[this_folder] + ".csv"):
+            print(output_dir + "Processing/ifd_cockpit_" + trial_settings.Scenario[this_folder] + ".csv already exists")
+            continue
+        else:
+            this_table = pd.DataFrame()
+            print(
+                "processing: "
+                + (helper.crew_dir + "Synched/" + str(trial_settings.RunDateTime[this_folder]) + "/IFD_COCKPIT.log")
+            )
+            try:
+                this_table = helper.read_bucket_log(
+                    "Synched/" + str(trial_settings.RunDateTime[this_folder]) + "/IFD_COCKPIT.log",
+                )
+            except:
+                print("file doesnt exist")
+            if not this_table.empty:
+                ifd_cockpit = helper.adjust_timestamps(this_table)
+                helper.store_file(ifd_cockpit, "Processing/", "ifd_cockpit_" + str(trial_settings.Scenario[this_folder]))
+                print("converted to: ifd_cockpit_" + trial_settings.Scenario[this_folder])
 
-		blob = bucket.blob(crew_dir + "/Synched/" + str(trial_settings.RunDateTime[this_folder]) + '/Emp_Emp_Device2_Ibi.log')
-		if blob.exists():
-			print("processing: " + (crew_dir + "/Synched/" + str(trial_settings.RunDateTime[this_folder])+ '/Emp_Emp_Device2_Ibi.log'))
-			this_table = pd.read_table(('gs://soteria_study_data/' + crew_dir + "/Synched/" + str(trial_settings.RunDateTime[this_folder]) + '/Emp_Emp_Device2_Ibi.log'),delimiter='\t')
-			if not this_table.empty:
-				emp_ibi_rightseat = adjust_timestamps(this_table)
-				emp_ibi_rightseat.to_csv("Processing/" + 'emp_ibi_rightseat_' + str(trial_settings.Scenario[this_folder])+'.csv',index=False)
-
-		blob = bucket.blob(crew_dir + "/Synched/" + str(trial_settings.RunDateTime[this_folder]) + '/Emp_Emp_Device2_Temp.log')
-		if blob.exists():
-			print("processing: " + (crew_dir + "/Synched/" + str(trial_settings.RunDateTime[this_folder])+ '/Emp_Emp_Device2_Temp.log'))
-			this_table = pd.read_table(('gs://soteria_study_data/' + crew_dir + "/Synched/" + str(trial_settings.RunDateTime[this_folder]) + '/Emp_Emp_Device2_Temp.log'),delimiter='\t')
-			if not this_table.empty:
-				emp_temp_rightseat = adjust_timestamps(this_table)
-				emp_temp_rightseat.to_csv("Processing/" + 'emp_temp_rightseat_' + str(trial_settings.Scenario[this_folder])+'.csv',index=False)
-
-		blob = bucket.blob(crew_dir + "/Synched/" + str(trial_settings.RunDateTime[this_folder]) + '/SmartEye_Right_Seat_ET.log')
-		if blob.exists():
-			print("processing: " + (crew_dir + "/Synched/" + str(trial_settings.RunDateTime[this_folder])+ '/SmartEye_Right_Seat_ET.log'))
-			this_table = pd.read_table(('gs://soteria_study_data/' + crew_dir + "/Synched/" + str(trial_settings.RunDateTime[this_folder]) + '/SmartEye_Right_Seat_ET.log'),delimiter='\t')
-			if not this_table.empty:
-				smarteye_rightseat = adjust_timestamps(this_table)
-				smarteye_rightseat.to_csv("Processing/" + 'smarteye_rightseat_' + str(trial_settings.Scenario[this_folder])+'.csv',index=False)
-
-		blob = bucket.blob(crew_dir + "/Synched/" + str(trial_settings.RunDateTime[this_folder]) + '/IFD_COCKPIT.log')
-		if blob.exists():
-			print("processing: " + (crew_dir + "/Synched/" + str(trial_settings.RunDateTime[this_folder])+ '/IFD_COCKPIT.log'))
-			this_table = pd.read_table(('gs://soteria_study_data/' + crew_dir + "/Synched/" + str(trial_settings.RunDateTime[this_folder]) + '/IFD_COCKPIT.log'),delimiter='\t')
-			if not this_table.empty:
-				ifd_cockpit = adjust_timestamps(this_table)
-				ifd_cockpit.to_csv("Processing/" + 'ifd_cockpit_' + str(trial_settings.Scenario[this_folder])+'.csv',index=False)
-
-	# subprocess.Popen('gsutil cp -r Processing/ "gs://soteria_study_data/"'+ crew_dir + '"/"', shell=True)
-	subprocess.call('gsutil -m rsync -r Processing/ "gs://soteria_study_data/"'+ crew_dir + '"/Processing"', shell=True)
-	# time.sleep(60)
+        # if args.Push2Cloud:
+        #     helper.sync_crew_folder_storage()
