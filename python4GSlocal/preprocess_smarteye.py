@@ -171,17 +171,6 @@ for i_crew in range(len(crew_arr)):
                 # 11) gaze_vel_avg
                 # 12) gaze_vel_std
                 # 13) AOI
-
-                #### this_smarteyeGazeTimeSeries_np create dataframe that contains
-                # 1) crewID
-                # 2) seat
-                # 3) scenario
-                # 4) within 60 seconds of stressor (1) or not (0)
-                # 5) epoch index
-                # 6) headHeading_avg
-                # 7) headHeading_std
-                # 8) pupilD_avg
-                # 9) pupilD_std
                 
                 this_smarteyeGazeTimeSeries_np = np.zeros((int(number_of_epochs_this_scenario), 13))
                 this_smarteyeGazeTimeSeries_np[:, 0] = helper.getCrewInt()
