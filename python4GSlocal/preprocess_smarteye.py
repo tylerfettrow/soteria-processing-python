@@ -38,8 +38,6 @@ args = parser.parse_args()
 crew_arr, scenarios = helper.ParseCrewAndScenario(sys.argv, args.crews, args.scenarios)
 if args.directory:
     helper.local_process_dir = args.directory
-# plot_qatable = 1  # embeds pct_usable value too
-# plot_aoi = 0  # plots the area of interest scatter plot for each scenario/pilot
 file_types = ["smarteye_leftseat", "smarteye_rightseat"]
 time_per_epoch_4_analysis = 2  # seconds per epoch
 ###############################################
