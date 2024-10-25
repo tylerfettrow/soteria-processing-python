@@ -1,3 +1,6 @@
-python4GSlocal/Processing/*
-python4GSlocal/Analysis/*
-python4GSlocal/Figures/*
+analysis/
+aws_admin/
+figures/
+helper/
+matlab/
+python4GSlocal/__pycache__/
