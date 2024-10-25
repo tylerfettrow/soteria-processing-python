@@ -53,11 +53,12 @@ class HELP:
         return obj
 
     def read_bucket_xlsx(self, file_name, sub_worksheet):
-        obj = self.s3c.get_object(Bucket=self.s3_bucket_name, Key=self.crew_dir + file_name)
-        data = pd.read_excel(
-            obj["Body"],
-            sub_worksheet,
-        )
+        if not self.local_process_dir+file_name:
+            cmd = "aws s3 cp s3://nasa-soteria-data/{} {}".format(file_name, self.local_process_dir+"Analysis/")
+            output_dir = self.local_process_dir+"Analysis/"
+            os.makedirs(output_dir, exist_ok=True)
+            subprocess.call(cmd, shell=True)
+        data = pd.read_excel(self.local_process_dir+file_name, sub_worksheet)
         return data
 
     def store_file(self, dataframe, folder_name, file_name):
