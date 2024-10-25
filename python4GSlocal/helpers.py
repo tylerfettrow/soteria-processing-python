@@ -53,7 +53,7 @@ class HELP:
         return obj
 
     def read_bucket_xlsx(self, file_name, sub_worksheet):
-        if not self.local_process_dir+file_name:
+        if not os.path.isfile(self.local_process_dir+file_name):
             cmd = "aws s3 cp s3://nasa-soteria-data/{} {}".format(file_name, self.local_process_dir+"Analysis/")
             output_dir = self.local_process_dir+"Analysis/"
             os.makedirs(output_dir, exist_ok=True)

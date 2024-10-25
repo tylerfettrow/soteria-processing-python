@@ -1,14 +1,4 @@
 # soteria-processing-python
-Notices:
-Copyright 2024 United States Government as represented by the Administrator of the National Aeronautics and Space Administration. All Rights Reserved.
- 
-This software calls the following third-party software, which is subject to the terms and conditions of its licensor, as applicable at the time of licensing. 
- 
-Disclaimers
-No Warranty: THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY OF ANY KIND, EITHER EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT LIMITED TO, ANY WARRANTY THAT THE SUBJECT SOFTWARE WILL CONFORM TO SPECIFICATIONS, ANY IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE. THIS AGREEMENT DOES NOT, IN ANY MANNER, CONSTITUTE AN ENDORSEMENT BY GOVERNMENT AGENCY OR ANY PRIOR RECIPIENT OF ANY RESULTS, RESULTING DESIGNS, HARDWARE, SOFTWARE PRODUCTS OR ANY OTHER APPLICATIONS RESULTING FROM USE OF THE SUBJECT SOFTWARE.  FURTHER, GOVERNMENT AGENCY DISCLAIMS ALL WARRANTIES AND LIABILITIES REGARDING THIRD-PARTY SOFTWARE, IF PRESENT IN THE ORIGINAL SOFTWARE, AND DISTRIBUTES IT "AS IS."
- 
-Waiver and Indemnity:  RECIPIENT AGREES TO WAIVE ANY AND ALL CLAIMS AGAINST THE UNITED STATES GOVERNMENT, ITS CONTRACTORS AND SUBCONTRACTORS, AS WELL AS ANY PRIOR RECIPIENT.  IF RECIPIENT'S USE OF THE SUBJECT SOFTWARE RESULTS IN ANY LIABILITIES, DEMANDS, DAMAGES, EXPENSES OR LOSSES ARISING FROM SUCH USE, INCLUDING ANY DAMAGES FROM PRODUCTS BASED ON, OR RESULTING FROM, RECIPIENT'S USE OF THE SUBJECT SOFTWARE, RECIPIENT SHALL INDEMNIFY AND HOLD HARMLESS THE UNITED STATES GOVERNMENT, ITS CONTRACTORS AND SUBCONTRACTORS, AS WELL AS ANY PRIOR RECIPIENT, TO THE EXTENT PERMITTED BY LAW.  RECIPIENT'S SOLE REMEDY FOR ANY SUCH MATTER SHALL BE THE IMMEDIATE, UNILATERAL TERMINATION OF THIS AGREEMENT.
-
 
 ## Setup Access and Software
 - [ ] A number of steps need to be taken to get access to the data and the code that we used for transferring the data, initial quality assurance checks, and initial preprocessing and analyses.
@@ -83,7 +73,11 @@ This script includes additional flags for plot creations.
 - [ ] Preprocessing script that takes the raw ekg, runs a peak finding algorithm on it, and then calculates beats per minute and heart rate variability from this data. (preprocess_ekg.py)
 This script includes additional flags for plot creations. 
 - [ ] plot_qa_figs toggle will generate figures that allows to view and scroll through raw EKG signals (-p1)
+	- [] start scrolling by clicking on scroll bar and the axes will auto zoom
 - [ ] "time_per_epoch_4_analysis" is hard coded, and is the time in seconds for each epoch
+
+### Plot Available
+Each modality (Smarteye, EEG, and EKG) have a plot_availability script, that provides a high level view of the percent of data that is in good shape, lost, or could use additional preprocessing steps to improve. 
 
 ### Gather Results
 There exists a gathering script for each data type. The purpose of this gathering script is to go through and concatenate all subject/crew results into a single dataframe, store these results in a csv, and create some figures of this data.
@@ -98,7 +92,23 @@ Our hope is that the others will contribute back to both the data and the code r
 Additions to the data set need to be approved by the administrator of the data set, therefore, please reach out to either Tyler Fettrow or Chad Stephens (contact information listed on title page).
 
 ## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+The work was supported by NASA Aeronautics Research Mission Directorate Airspace Operations and Safety Program System-Wide Safety Project.
+
+Chad Stephens, Lance Prinzel, Jon Holbrook,  Michael Stewart, Kathryn Ballard, and Daniel Kiggins designed the experiment.
+
+This work supported from members of NASA Langley Research Center Simulation Development and Analysis Branch specifically Jim Barnes, Lon Kelly, Julie Timmons, Tom Feigh, Matthew Miser, and others. Alex Romero, air traffic control subject matter expert, served as the live air traffic controller interacting with flight crews during all simulation scenarios. Captain Brent Bushnell, commercial aviation subject matter expert, tested all simulated flight scenarios and advised NASA research team prior to the study being conducted.
+
+Chad Stephens, Lance Prinzel, Jon Holbrook, Michael Stewart, Kathryn Ballard, Tyler Fettrow, Sepher Bastami and Daniel Kiggins carried out the experimental data collection.
+
+Tyler Fettrow and Chad Stephens curated the dataset and produced the original example code in this repository. 
+
+## Project status
+There are currently several planned additions to the data set that will be uploaded at a future date.
+First, the most critical is the addition of improved "event" identification. Currently the events are coded based on the timing of a particular call from ATC (i.e., deviate course), or a specific event occurring in the simulation (i.e., wake turbulence). However, it is possible that the ATC call timing differed between crews due to the ability of the crew to foresee the problem, or some other unforeseen circumstance. Regardless, there is a need for a more robust methodology for identifying the stressor events. Since each scenario had video and audio recordings, we plan to have observations completed by The LOSA Collaborative and American Airlines LIT that will provide resilience and workload classifications for each scenario and crew. This will provide expert level classification of events for improved future analyses. 
+
+Additionally, we plan on having all the videos transcribed. We have attempted to use language processing software to transcribe, but due to the nuanced nature of air traffic communications, some language was misinterpreted. Therefore we plan on having experts check and correct the automated software results prior to releasing this data publicly. 
+
+As features of data or code analyses are manufactured, we will provide updated details here.
 
 ## License
 Notices:
@@ -110,6 +120,3 @@ Disclaimers:
 No Warranty: THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY OF ANY KIND, EITHER EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT LIMITED TO, ANY WARRANTY THAT THE SUBJECT SOFTWARE WILL CONFORM TO SPECIFICATIONS, ANY IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE. THIS AGREEMENT DOES NOT, IN ANY MANNER, CONSTITUTE AN ENDORSEMENT BY GOVERNMENT AGENCY OR ANY PRIOR RECIPIENT OF ANY RESULTS, RESULTING DESIGNS, HARDWARE, SOFTWARE PRODUCTS OR ANY OTHER APPLICATIONS RESULTING FROM USE OF THE SUBJECT SOFTWARE.  FURTHER, GOVERNMENT AGENCY DISCLAIMS ALL WARRANTIES AND LIABILITIES REGARDING THIRD-PARTY SOFTWARE, IF PRESENT IN THE ORIGINAL SOFTWARE, AND DISTRIBUTES IT "AS IS."
  
 Waiver and Indemnity:  RECIPIENT AGREES TO WAIVE ANY AND ALL CLAIMS AGAINST THE UNITED STATES GOVERNMENT, ITS CONTRACTORS AND SUBCONTRACTORS, AS WELL AS ANY PRIOR RECIPIENT.  IF RECIPIENT'S USE OF THE SUBJECT SOFTWARE RESULTS IN ANY LIABILITIES, DEMANDS, DAMAGES, EXPENSES OR LOSSES ARISING FROM SUCH USE, INCLUDING ANY DAMAGES FROM PRODUCTS BASED ON, OR RESULTING FROM, RECIPIENT'S USE OF THE SUBJECT SOFTWARE, RECIPIENT SHALL INDEMNIFY AND HOLD HARMLESS THE UNITED STATES GOVERNMENT, ITS CONTRACTORS AND SUBCONTRACTORS, AS WELL AS ANY PRIOR RECIPIENT, TO THE EXTENT PERMITTED BY LAW.  RECIPIENT'S SOLE REMEDY FOR ANY SUCH MATTER SHALL BE THE IMMEDIATE, UNILATERAL TERMINATION OF THIS AGREEMENT.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
